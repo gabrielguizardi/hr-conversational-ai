@@ -1,0 +1,5 @@
+websockets==14.1
+certifi==2024.12.14
+requests==2.32.3
+aiohttp==3.11.11
+python-dotenv==1.0.1
