@@ -1,18 +1,3 @@
-# Copyright 2024 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-"""Vertex AI Gemini Multimodal Live WebSockets Proxy Logic"""
-
 import asyncio
 import json
 import traceback
@@ -38,17 +23,24 @@ async def proxy_task(
     Forwards messages from one WebSocket connection to another.
     """
     try:
-        async for message in source_websocket:
+        iterator = (
+            source_websocket.iter_text()
+            if hasattr(source_websocket, "iter_text")
+            else source_websocket
+        )
+        async for message in iterator:
             try:
+                if isinstance(message, bytes):
+                    message = message.decode("utf-8")
+
                 data = json.loads(message)
 
-                # Intercept setup messages from client and apply backend configuration
                 if "setup" in data and name == "Client->Server":
                     print(
                         f"{name} intercepting setup message - applying backend configuration"
                     )
-                    # Apply backend setup configuration
-                    backend_setup = {
+
+                    gemini_setup = {
                         "setup": {
                             "model": "models/gemini-2.5-flash-preview-native-audio-dialog",
                             "generation_config": {
@@ -63,16 +55,17 @@ async def proxy_task(
                             },
                         }
                     }
-                    print(
-                        f"Sending backend setup: {json.dumps(backend_setup, indent=2)}"
-                    )
-                    await target_websocket.send(json.dumps(backend_setup))
+
+                    print(f"Sending backend setup: {json.dumps(gemini_setup)}")
+
+                    await target_websocket.send(json.dumps(gemini_setup))
                     continue
 
                 # Log message type for debugging
                 if "setup" in data:
                     print(f"{name} forwarding setup message")
-                    print(f"Setup message content: {json.dumps(data, indent=2)}")
+                    print(
+                        f"Setup message content: {json.dumps(data, indent=2)}")
                 elif "realtime_input" in data:
                     print(f"{name} forwarding audio/video input")
                 elif "serverContent" in data:
@@ -87,7 +80,11 @@ async def proxy_task(
 
                 # Forward the message
                 try:
-                    await target_websocket.send(json.dumps(data))
+                    # Use send_text for FastAPI compatibility
+                    if hasattr(target_websocket, "send_text"):
+                        await target_websocket.send_text(json.dumps(data))
+                    else:
+                        await target_websocket.send(json.dumps(data))
                 except Exception as e:
                     print(f"\n{name} Error sending message:")
                     print("=" * 80)
@@ -178,7 +175,7 @@ async def create_proxy(
 
 
 async def handle_client(
-    client_websocket: WebSocketServerProtocol, gemini_client: GeminiClient
+    client_websocket: WebSocketCommonProtocol, gemini_client: GeminiClient
 ) -> None:
     """
     Handles a new client connection.
@@ -186,7 +183,11 @@ async def handle_client(
     print("New connection...")
     try:
         # Send auth complete message to client
-        await client_websocket.send(json.dumps({"authComplete": True}))
+        auth_message = json.dumps({"authComplete": True})
+        if hasattr(client_websocket, "send_text"):
+            await client_websocket.send_text(auth_message)
+        else:
+            await client_websocket.send(auth_message)
         print("Sent auth complete message")
 
         print("Creating proxy connection")
@@ -194,11 +195,13 @@ async def handle_client(
 
     except asyncio.TimeoutError:
         print("Timeout in handle_client")
-        await client_websocket.close(code=1008, reason="Auth timeout")
+        if hasattr(client_websocket, "close"):
+            await client_websocket.close(code=1008, reason="Auth timeout")
     except Exception as e:
         print(f"Error in handle_client: {e}")
         print(f"Full traceback: {traceback.format_exc()}")
-        await client_websocket.close(code=1011, reason=str(e))
+        if hasattr(client_websocket, "close"):
+            await client_websocket.close(code=1011, reason=str(e))
 
 
 async def cleanup_connections(gemini_client: GeminiClient) -> None:
@@ -211,12 +214,14 @@ async def cleanup_connections(gemini_client: GeminiClient) -> None:
         # Clean up client connections
         for conn in list(active_client_connections):
             try:
-                await conn.ping()
+                if hasattr(conn, "ping"):
+                    await conn.ping()
             except Exception:
                 print("Found stale client connection, removing...")
                 active_client_connections.remove(conn)
                 try:
-                    await conn.close()
+                    if hasattr(conn, "close"):
+                        await conn.close()
                 except Exception:
                     pass
 
@@ -228,68 +233,3 @@ async def cleanup_connections(gemini_client: GeminiClient) -> None:
             )
 
         await asyncio.sleep(30)  # Check every 30 seconds
-
-
-class WebSocketProxy:
-    """
-    WebSocket Proxy class that encapsulates all proxy logic
-    """
-
-    def __init__(self, host: str = "0.0.0.0", port: int = 3001):
-        self.host = host
-        self.port = port
-        self.cleanup_task = None
-        self.gemini_client = GeminiClient()
-
-    async def handle_client_wrapper(self, client_websocket: WebSocketServerProtocol):
-        """
-        Wrapper to pass gemini_client to handle_client
-        """
-        active_client_connections.add(client_websocket)
-        try:
-            await handle_client(client_websocket, self.gemini_client)
-        finally:
-            if client_websocket in active_client_connections:
-                active_client_connections.remove(client_websocket)
-
-    async def start_server(self):
-        """
-        Starts the WebSocket proxy server.
-        """
-        print("DEBUG: WebSocketProxy - Starting server...")
-
-        # Start the cleanup task
-        self.cleanup_task = asyncio.create_task(cleanup_connections(self.gemini_client))
-
-        async with websockets.serve(
-            self.handle_client_wrapper,
-            self.host,
-            self.port,
-            ping_interval=30,  # Send ping every 30 seconds
-            ping_timeout=10,  # Wait 10 seconds for pong
-        ):
-            print(f"Running websocket proxy server on {self.host}:{self.port}...")
-            try:
-                await asyncio.Future()  # run forever
-            finally:
-                await self.cleanup()
-
-    async def cleanup(self):
-        """
-        Clean up resources when shutting down
-        """
-        if self.cleanup_task:
-            self.cleanup_task.cancel()
-
-        # Close all client connections
-        for conn in list(active_client_connections):
-            try:
-                await conn.close()
-            except Exception:
-                pass
-        active_client_connections.clear()
-
-        # Clean up Gemini connections
-        await self.gemini_client.cleanup_all_connections()
-
-        print("WebSocket proxy server stopped and cleaned up.")

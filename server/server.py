@@ -1,29 +1,47 @@
-# Copyright 2024 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
 """Vertex AI Gemini Multimodal Live WebSockets Server"""
 
 import asyncio
 import os
-from proxy import WebSocketProxy
+import uvicorn
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from dotenv import load_dotenv
 
+from proxy import handle_client, active_client_connections, cleanup_connections
+from gemini_client import GeminiClient
+
 load_dotenv()
+
+app = FastAPI()
+gemini_client = GeminiClient()
+
+
+@app.get("/health_check")
+async def health_check():
+    """
+    Health check endpoint.
+    """
+    return {"status": "ok"}
+
+
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    """
+    WebSocket endpoint for handling client connections.
+    """
+    await websocket.accept()
+    active_client_connections.add(websocket)
+    try:
+        await handle_client(websocket, gemini_client)
+    except WebSocketDisconnect:
+        print("Client disconnected")
+    finally:
+        if websocket in active_client_connections:
+            active_client_connections.remove(websocket)
 
 
 async def main() -> None:
     """
-    Starts the WebSocket server using the proxy logic.
+    Starts the FastAPI server using uvicorn.
     """
     print("DEBUG: server.py - Starting server...")
 
@@ -31,9 +49,13 @@ async def main() -> None:
     port = int(os.environ.get("PORT", 3001))
     host = "0.0.0.0"
 
-    # Create and start the proxy server
-    proxy = WebSocketProxy(host=host, port=port)
-    await proxy.start_server()
+    # Start the cleanup task as a background task
+    asyncio.create_task(cleanup_connections(gemini_client))
+
+    # Create and run the uvicorn server
+    config = uvicorn.Config(app, host=host, port=port, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
 
 
 if __name__ == "__main__":
