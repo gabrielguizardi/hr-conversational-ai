@@ -4,10 +4,11 @@ import { GeminiLiveAPI } from "@/helpers/geminiLiveAPI"
 import { audioContext, base64ToArrayBuffer } from "@/helpers/utils"
 import { AudioStreamer } from "@/helpers/audioStreamer"
 
-const GeminiLiveApiProvider = ({
-  children,
-  proxyUrl = "ws://localhost:3001",
-}) => {
+import { wsUrl } from "@/services/application"
+
+const GeminiLiveApiProvider = ({ children }) => {
+  const proxyUrl = `${wsUrl}/ws`
+
   const client = useMemo(() => new GeminiLiveAPI(proxyUrl), [proxyUrl])
   const audioStreamerRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)
