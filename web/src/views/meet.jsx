@@ -1,9 +1,15 @@
-import { useGeminiLiveApi } from "@/hooks/useGeminiLiveApi"
-import { AudioRecorder } from "@/helpers/audioRecorder"
 import { useEffect, useRef, useState, useCallback } from "react"
-import styles from "./Main.module.css"
+import { MicIcon, MicOffIcon } from "lucide-react"
 
-const Main = () => {
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { ScrollArea } from "@/components/ui/scroll-area"
+
+import { AudioRecorder } from "@/helpers/audioRecorder"
+import { useGeminiLiveApi } from "@/hooks/useGeminiLiveApi"
+import { isDevelopment } from "@/services/application"
+
+const Meet = () => {
   const [audioRecorder] = useState(() => new AudioRecorder())
   const [muted, setMuted] = useState(false)
   const [logs, setLogs] = useState([])
@@ -75,38 +81,59 @@ const Main = () => {
   }, [client, addLog])
 
   return (
-    <div className={styles.mainContainer}>
-      <h1 className={styles.title}>Gemini Live</h1>
-
-      <button
-        onClick={() => setMuted(!muted)}
-        className={`${styles.button} ${muted ? styles.muted : ""}`}
-      >
-        {muted ? "Unmute" : "Mute"}
-      </button>
-
-      <button
-        ref={connectButtonRef}
-        onClick={connected ? disconnect : connect}
-        className={`${styles.button} ${connected ? styles.disconnect : ""}`}
-      >
-        {connected ? "Disconnect" : "Connect"}
-      </button>
-
-      {/* Logs para debug */}
-      <div className={styles.logsContainer}>
-        <h3>Activity Log:</h3>
-        <div className={styles.logs}>
-          {logs.map((log, index) => (
-            <div key={index} className={styles.logEntry}>
-              <span className={styles.timestamp}>{log.timestamp}</span>
-              <span className={styles.message}>{log.message}</span>
-            </div>
-          ))}
-        </div>
+    <div className="container mx-auto py-8 space-y-8">
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-bold tracking-tight">Gemini Live</h1>
+        <p className="text-muted-foreground">
+          Interact with Gemini using your voice
+        </p>
       </div>
+
+      <Card className="w-full max-w-2xl mx-auto">
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <span>Controls</span>
+            <div className="flex gap-2">
+              <Button
+                onClick={() => setMuted(!muted)}
+                variant={muted ? "destructive" : "default"}
+                size="icon"
+              >
+                {muted ? <MicOffIcon /> : <MicIcon />}
+              </Button>
+              <Button
+                ref={connectButtonRef}
+                variant={connected ? "destructive" : "default"}
+                onClick={connected ? disconnect : connect}
+              >
+                {connected ? "Desconectar" : "Conectar"}
+              </Button>
+            </div>
+          </CardTitle>
+        </CardHeader>
+      </Card>
+
+      {isDevelopment && (
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Activity Log</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ScrollArea className="h-[200px] w-full rounded-md border p-4">
+              {logs.map((log, index) => (
+                <div key={index} className="flex items-center py-1 text-sm">
+                  <span className="text-muted-foreground font-mono w-20 flex-shrink-0">
+                    {log.timestamp}
+                  </span>
+                  <span className="flex-1">{log.message}</span>
+                </div>
+              ))}
+            </ScrollArea>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
 
-export default Main
+export { Meet }
