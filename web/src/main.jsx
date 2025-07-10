@@ -4,7 +4,6 @@ import { createBrowserRouter, RouterProvider } from "react-router"
 
 import { DefaultLayout } from "./layouts/default-layout"
 
-import { Gemini } from "@/views/gemini"
 import { JobVacancyList } from "@/views/job-vacancy-list"
 import { JobVacancyCreate } from "@/views/job-vacancy-create"
 import { JobVacancyShow } from "@/views/job-vacancy-show"
