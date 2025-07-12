@@ -6,7 +6,7 @@ import { AudioStreamer } from "@/helpers/audioStreamer"
 
 import { wsUrl } from "@/services/application"
 
-const GeminiLiveApiProvider = ({ children }) => {
+const GeminiLiveApiProvider = ({ children, jobVacancyId = null }) => {
   const proxyUrl = `${wsUrl}/ws`
 
   const client = useMemo(() => new GeminiLiveAPI(proxyUrl), [proxyUrl])
@@ -31,9 +31,26 @@ const GeminiLiveApiProvider = ({ children }) => {
       console.log("Setup completed - setting connected to true")
       setConnected(true)
     }
+    
+    // Override sendSetupRequest to include jobVacancyId
+    const originalSendSetupRequest = client.sendSetupRequest
+    client.sendSetupRequest = (id) => {
+      originalSendSetupRequest.call(client, jobVacancyId || id)
+    }
     client.onAudioData = (base64Audio) => {
-      const arrayBuffer = base64ToArrayBuffer(base64Audio)
-      audioStreamerRef.current?.addPCM16(new Uint8Array(arrayBuffer))
+      console.log("🔊 Processing audio from Gemini - base64 length:", base64Audio.length)
+      try {
+        const arrayBuffer = base64ToArrayBuffer(base64Audio)
+        console.log("🔄 Converted to ArrayBuffer - size:", arrayBuffer.byteLength, "bytes")
+        if (audioStreamerRef.current) {
+          audioStreamerRef.current.addPCM16(new Uint8Array(arrayBuffer))
+          console.log("✅ Audio sent to AudioStreamer")
+        } else {
+          console.error("❌ AudioStreamer not available")
+        }
+      } catch (error) {
+        console.error("❌ Error processing audio:", error)
+      }
     }
     client.onInterrupted = () => {
       audioStreamerRef.current?.stop()

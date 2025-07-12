@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from bson.errors import InvalidId
+from datetime import datetime
 
 
 from proxy import handle_client, active_client_connections, cleanup_connections
@@ -75,6 +76,277 @@ async def health_check():
     return {"status": "ok"}
 
 
+@app.get("/interview_questions")
+async def get_interview_questions():
+    """
+    Get all interview questions.
+    """
+    questions = list(mongo_client_db.interview_questions.find({}))
+    
+    for question in questions:
+        question["_id"] = str(question["_id"])
+    
+    return {"interview_questions": questions}
+
+
+@app.post("/interview_questions")
+async def create_interview_question(request: Request):
+    """
+    Create a new interview question.
+    """
+    try:
+        data = await request.json()
+        
+        # Validate required fields
+        if not data.get("question"):
+            raise HTTPException(status_code=400, detail="Question text is required")
+        
+        # Create question document
+        question_doc = {
+            "question": data["question"],
+            "category": data.get("category", "personal"),
+            "difficulty": data.get("difficulty", "easy"),
+            "tag": data.get("tag", ""),
+            "job_vacancy_id": data.get("job_vacancy_id"),
+            "created_at": datetime.utcnow(),
+            "active": data.get("active", True)
+        }
+        
+        result = mongo_client_db.interview_questions.insert_one(question_doc)
+        question_doc["_id"] = str(result.inserted_id)
+        
+        return {"interview_question": question_doc}
+        
+    except Exception as e:
+        logging.error(f"Error creating interview question: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.put("/interview_questions/{question_id}")
+async def update_interview_question(question_id: str, request: Request):
+    """
+    Update an interview question.
+    """
+    try:
+        if not ObjectId.is_valid(question_id):
+            raise HTTPException(status_code=400, detail="Invalid question ID")
+        
+        data = await request.json()
+        
+        # Update fields
+        update_data = {}
+        if "question" in data:
+            update_data["question"] = data["question"]
+        if "category" in data:
+            update_data["category"] = data["category"]
+        if "difficulty" in data:
+            update_data["difficulty"] = data["difficulty"]
+        if "tag" in data:
+            update_data["tag"] = data["tag"]
+        if "active" in data:
+            update_data["active"] = data["active"]
+        
+        if not update_data:
+            raise HTTPException(status_code=400, detail="No fields to update")
+        
+        update_data["updated_at"] = datetime.utcnow()
+        
+        result = mongo_client_db.interview_questions.update_one(
+            {"_id": ObjectId(question_id)},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        return {"message": "Question updated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating interview question: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.delete("/interview_questions/{question_id}")
+async def delete_interview_question(question_id: str):
+    """
+    Delete an interview question.
+    """
+    try:
+        if not ObjectId.is_valid(question_id):
+            raise HTTPException(status_code=400, detail="Invalid question ID")
+        
+        result = mongo_client_db.interview_questions.delete_one({"_id": ObjectId(question_id)})
+        
+        if result.deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        return {"message": "Question deleted successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error deleting interview question: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interview_questions/job_vacancy/{job_vacancy_id}")
+async def get_interview_questions_by_job_vacancy(job_vacancy_id: str):
+    """
+    Get interview questions for a specific job vacancy.
+    """
+    try:
+        if not ObjectId.is_valid(job_vacancy_id):
+            raise HTTPException(status_code=400, detail="Invalid job vacancy ID")
+        
+        questions = list(mongo_client_db.interview_questions.find({
+            "job_vacancy_id": job_vacancy_id,
+            "active": True
+        }))
+        
+        for question in questions:
+            question["_id"] = str(question["_id"])
+        
+        return {"interview_questions": questions}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting interview questions: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.post("/interviews")
+async def create_interview(request: Request):
+    """
+    Create a new interview session.
+    """
+    try:
+        data = await request.json()
+        
+        # Validate required fields
+        if not data.get("candidate_id"):
+            raise HTTPException(status_code=400, detail="Candidate ID is required")
+        if not data.get("job_vacancy_id"):
+            raise HTTPException(status_code=400, detail="Job vacancy ID is required")
+        
+        # Create interview document
+        interview_doc = {
+            "candidate_id": ObjectId(data["candidate_id"]),
+            "job_vacancy_id": ObjectId(data["job_vacancy_id"]),
+            "status": "in_progress",
+            "started_at": datetime.utcnow(),
+            "responses": {},
+            "questions_asked": []
+        }
+        
+        result = mongo_client_db.interviews.insert_one(interview_doc)
+        interview_doc["_id"] = str(result.inserted_id)
+        
+        return {"interview": interview_doc}
+        
+    except Exception as e:
+        logging.error(f"Error creating interview: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.put("/interviews/{interview_id}/responses")
+async def update_interview_responses(interview_id: str, request: Request):
+    """
+    Update interview responses.
+    """
+    try:
+        if not ObjectId.is_valid(interview_id):
+            raise HTTPException(status_code=400, detail="Invalid interview ID")
+        
+        data = await request.json()
+        
+        # Validate required fields
+        if not data.get("responses"):
+            raise HTTPException(status_code=400, detail="Responses are required")
+        
+        update_data = {
+            "responses": data["responses"],
+            "updated_at": datetime.utcnow()
+        }
+        
+        if data.get("status"):
+            update_data["status"] = data["status"]
+            if data["status"] == "completed":
+                update_data["completed_at"] = datetime.utcnow()
+        
+        result = mongo_client_db.interviews.update_one(
+            {"_id": ObjectId(interview_id)},
+            {"$set": update_data}
+        )
+        
+        if result.matched_count == 0:
+            raise HTTPException(status_code=404, detail="Interview not found")
+        
+        return {"message": "Interview responses updated successfully"}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error updating interview responses: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interviews/{interview_id}")
+async def get_interview(interview_id: str):
+    """
+    Get a specific interview by ID.
+    """
+    try:
+        if not ObjectId.is_valid(interview_id):
+            raise HTTPException(status_code=400, detail="Invalid interview ID")
+        
+        interview = mongo_client_db.interviews.find_one({"_id": ObjectId(interview_id)})
+        
+        if not interview:
+            raise HTTPException(status_code=404, detail="Interview not found")
+        
+        interview["_id"] = str(interview["_id"])
+        interview["candidate_id"] = str(interview["candidate_id"])
+        interview["job_vacancy_id"] = str(interview["job_vacancy_id"])
+        
+        return {"interview": interview}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting interview: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interviews/candidate/{candidate_id}")
+async def get_interviews_by_candidate(candidate_id: str):
+    """
+    Get all interviews for a specific candidate.
+    """
+    try:
+        if not ObjectId.is_valid(candidate_id):
+            raise HTTPException(status_code=400, detail="Invalid candidate ID")
+        
+        interviews = list(mongo_client_db.interviews.find({
+            "candidate_id": ObjectId(candidate_id)
+        }))
+        
+        for interview in interviews:
+            interview["_id"] = str(interview["_id"])
+            interview["candidate_id"] = str(interview["candidate_id"])
+            interview["job_vacancy_id"] = str(interview["job_vacancy_id"])
+        
+        return {"interviews": interviews}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting interviews by candidate: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @app.post("/job_vacancies")
 async def create_job_vacancy(job_vacancy: dict):
     """
@@ -135,6 +407,33 @@ def get_candidates_for_job(job_id: str):
         candidate["job_vacancy_id"] = str(candidate["job_vacancy_id"])
 
     return {"candidates": candidates}
+
+
+@app.get("/candidates/{candidate_id}")
+async def get_candidate(candidate_id: str):
+    """
+    Get a specific candidate by ID.
+    """
+    try:
+        if not ObjectId.is_valid(candidate_id):
+            raise HTTPException(status_code=400, detail="Invalid candidate ID")
+
+        candidate = mongo_client_db.candidates.find_one({"_id": ObjectId(candidate_id)})
+
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+
+        candidate["_id"] = str(candidate["_id"])
+        if candidate.get("job_vacancy_id"):
+            candidate["job_vacancy_id"] = str(candidate["job_vacancy_id"])
+
+        return {"candidate": candidate}
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting candidate: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 
 @app.websocket("/ws")

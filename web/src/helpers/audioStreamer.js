@@ -71,8 +71,11 @@ export class AudioStreamer {
   }
 
   addPCM16(chunk) {
+    console.log("🎧 AudioStreamer.addPCM16 called - chunk size:", chunk.length, "bytes")
     this.isStreamComplete = false
     let processingBuffer = this._processPCM16Chunk(chunk)
+    console.log("🔄 Processed PCM16 chunk - float32 samples:", processingBuffer.length)
+    
     while (processingBuffer.length >= this.bufferSize) {
       const buffer = processingBuffer.slice(0, this.bufferSize)
       this.audioQueue.push(buffer)
@@ -81,7 +84,11 @@ export class AudioStreamer {
     if (processingBuffer.length > 0) {
       this.audioQueue.push(processingBuffer)
     }
+    
+    console.log("📦 Audio queue length:", this.audioQueue.length)
+    
     if (!this.isPlaying) {
+      console.log("▶️ Starting audio playback")
       this.isPlaying = true
       this.scheduledTime =
         this.audioContext.currentTime + this.initialBufferTime
@@ -128,6 +135,7 @@ export class AudioStreamer {
 
       source.buffer = audioBuffer
       source.connect(this.gainNode)
+      console.log("🔊 Audio buffer scheduled - duration:", audioBuffer.duration, "seconds")
       const worklets = registeredWorklets.get(this.audioContext)
 
       if (worklets) {

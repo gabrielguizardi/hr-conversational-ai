@@ -47,7 +47,14 @@ class GeminiLiveAPI {
           wsResponse = JSON.parse(event.data)
         }
 
-        console.log("WebSocket Response:", wsResponse)
+        console.log("📨 WebSocket Response received:", {
+          hasAuthComplete: !!wsResponse.authComplete,
+          hasSetupComplete: !!wsResponse.setupComplete,
+          hasToolCall: !!wsResponse.toolCall,
+          hasServerContent: !!wsResponse.serverContent,
+          hasAudioData: !!(wsResponse.serverContent?.modelTurn?.parts?.[0]?.inlineData),
+          turnComplete: wsResponse.serverContent?.turnComplete
+        })
 
         if (wsResponse.authComplete) {
           console.log("Auth completed, connection ready")
@@ -67,6 +74,7 @@ class GeminiLiveAPI {
           if (wsResponse.serverContent.modelTurn?.parts?.[0]?.inlineData) {
             const audioData =
               wsResponse.serverContent.modelTurn.parts[0].inlineData.data
+            console.log("🎵 Audio data received from Gemini - base64 length:", audioData.length)
             this.onAudioData(audioData)
 
             if (!wsResponse.serverContent.turnComplete) {
@@ -104,14 +112,19 @@ class GeminiLiveAPI {
     }
   }
 
-  sendSetupRequest() {
+  sendSetupRequest(jobVacancyId = null) {
     // Send a minimal setup request - backend will handle the actual configuration
     const setupMessage = {
       setup: {},
     }
 
+    // Add job vacancy ID if provided
+    if (jobVacancyId) {
+      setupMessage.setup.job_vacancy_id = jobVacancyId
+    }
+
     if (this.ws.readyState === WebSocket.OPEN) {
-      console.log("Sending setup request to backend")
+      console.log("Sending setup request to backend", setupMessage)
       this.ws.send(JSON.stringify(setupMessage))
       this.isSetupSent = true
     }
@@ -128,7 +141,7 @@ class GeminiLiveAPI {
         ],
       },
     }
-    console.log("Sending audio message: ", message)
+    console.log("📡 WebSocket sending audio chunk - data length:", base64Audio.length)
     this.sendMessage(message)
   }
 
