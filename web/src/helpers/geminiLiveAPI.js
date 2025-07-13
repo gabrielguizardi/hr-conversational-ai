@@ -121,12 +121,17 @@ class GeminiLiveAPI {
     // Add job vacancy ID if provided
     if (jobVacancyId) {
       setupMessage.setup.job_vacancy_id = jobVacancyId
+      console.log("🔍 Job vacancy ID included in setup:", jobVacancyId)
+    } else {
+      console.log("⚠️ No job vacancy ID provided for setup")
     }
 
     if (this.ws.readyState === WebSocket.OPEN) {
-      console.log("Sending setup request to backend", setupMessage)
+      console.log("📤 Sending setup request to backend:", setupMessage)
       this.ws.send(JSON.stringify(setupMessage))
       this.isSetupSent = true
+    } else {
+      console.error("❌ WebSocket not ready for setup. State:", this.ws.readyState)
     }
   }
 

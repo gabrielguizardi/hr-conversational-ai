@@ -436,6 +436,62 @@ async def get_candidate(candidate_id: str):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@app.get("/meet/{candidate_id}")
+async def get_meet_data(candidate_id: str):
+    """
+    Get candidate and job vacancy data for the meet page.
+    """
+    try:
+        if not ObjectId.is_valid(candidate_id):
+            raise HTTPException(status_code=400, detail="Invalid candidate ID")
+
+        # Get candidate data
+        candidate = mongo_client_db.candidates.find_one({"_id": ObjectId(candidate_id)})
+
+        if not candidate:
+            raise HTTPException(status_code=404, detail="Candidate not found")
+
+        candidate["_id"] = str(candidate["_id"])
+        
+        # Get job vacancy data if candidate has job_vacancy_id
+        job_vacancy = None
+        if candidate.get("job_vacancy_id"):
+            candidate["job_vacancy_id"] = str(candidate["job_vacancy_id"])
+            
+            job_vacancy = mongo_client_db.job_vacancies.find_one({
+                "_id": ObjectId(candidate["job_vacancy_id"])
+            })
+            
+            if job_vacancy:
+                job_vacancy["_id"] = str(job_vacancy["_id"])
+        
+        # Get interview questions for this job vacancy
+        interview_questions = []
+        if candidate.get("job_vacancy_id"):
+            questions = list(mongo_client_db.interview_questions.find({
+                "job_vacancy_id": candidate["job_vacancy_id"],
+                "active": True
+            }))
+            
+            for question in questions:
+                question["_id"] = str(question["_id"])
+                question["job_vacancy_id"] = str(question["job_vacancy_id"])
+            
+            interview_questions = questions
+
+        return {
+            "candidate": candidate,
+            "job_vacancy": job_vacancy,
+            "interview_questions": interview_questions
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting meet data: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
     """

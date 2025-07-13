@@ -9,6 +9,8 @@ import { wsUrl } from "@/services/application"
 const GeminiLiveApiProvider = ({ children, jobVacancyId = null }) => {
   const proxyUrl = `${wsUrl}/ws`
 
+  console.log("🔧 GeminiLiveApiProvider initialized with jobVacancyId:", jobVacancyId)
+
   const client = useMemo(() => new GeminiLiveAPI(proxyUrl), [proxyUrl])
   const audioStreamerRef = useRef(null)
   const reconnectTimeoutRef = useRef(null)

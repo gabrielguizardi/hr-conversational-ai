@@ -10,12 +10,12 @@ import { useGeminiLiveApi } from "@/hooks/useGeminiLiveApi"
 import { isDevelopment } from "@/services/application"
 import { useParams } from "react-router"
 import InterviewProvider from "@/providers/InterviewProvider"
-import candidatesApi from "@/services/api/candidates"
+import meetApi from "@/services/api/meet"
 import interviewsApi from "@/services/api/interviews"
 import useFetch from "@/hooks/useFetch"
 
 const MeetContent = () => {
-  const { candidateId } = useParams()
+  const { jobCandidateId } = useParams()
   const [audioRecorder] = useState(() => new AudioRecorder())
   const [muted, setMuted] = useState(false)
   const [logs, setLogs] = useState([])
@@ -24,16 +24,18 @@ const MeetContent = () => {
   const [isInterviewStarted, setIsInterviewStarted] = useState(false)
   const connectButtonRef = useRef(null)
 
-  // Fetch candidate data to get job vacancy ID
-  const { data: candidateData } = useFetch(
-    candidatesApi.show,
-    { id: candidateId },
-    [candidateId]
+  // Fetch meet data (candidate, job vacancy, and interview questions)
+  const { data: meetData } = useFetch(
+    () => meetApi.getMeetData(jobCandidateId),
+    {},
+    [jobCandidateId]
   )
 
-  const candidate = candidateData?.candidate || {}
+  const candidate = meetData?.candidate || {}
+  const jobVacancy = meetData?.job_vacancy || {}
+  const interviewQuestions = meetData?.interview_questions || []
   const jobVacancyId = candidate?.job_vacancy_id
-
+  
   const { client, connected, connect, disconnect } = useGeminiLiveApi()
 
   const addLog = useCallback((message) => {
@@ -45,14 +47,14 @@ const MeetContent = () => {
 
   // Start interview session
   const startInterview = useCallback(async () => {
-    if (!candidateId || !jobVacancyId) {
+    if (!jobCandidateId || !jobVacancyId) {
       addLog("Erro: Dados do candidato ou vaga não encontrados")
       return
     }
 
     try {
       const response = await interviewsApi.create({
-        candidate_id: candidateId,
+        candidate_id: jobCandidateId,
         job_vacancy_id: jobVacancyId,
       })
       setInterviewId(response.data.interview._id)
@@ -62,7 +64,7 @@ const MeetContent = () => {
       console.error("Error starting interview:", error)
       addLog("Erro ao iniciar entrevista: " + error.message)
     }
-  }, [candidateId, jobVacancyId, addLog])
+  }, [jobCandidateId, jobVacancyId, addLog])
 
   // Save responses to database
   const saveResponses = useCallback(async (newResponses, status = "in_progress") => {
@@ -250,17 +252,98 @@ const MeetContent = () => {
 }
 
 const Meet = () => {
-  const { candidateId } = useParams()
+  const { jobCandidateId } = useParams()
   
-  // Fetch candidate data to get job vacancy ID
-  const { data: candidateData } = useFetch(
-    candidatesApi.show,
-    { id: candidateId },
-    [candidateId]
+  console.log("🔍 Meet - Component rendered with jobCandidateId:", jobCandidateId)
+  console.log("🔍 Meet - apiUrl from application:", import.meta.env.VITE_API_URL || "http://localhost:3001")
+  
+  // Test direct API call
+  useEffect(() => {
+    const testDirectApiCall = async () => {
+      try {
+        console.log("🔍 Meet - Testing direct API call...")
+        const response = await fetch(`http://localhost:3001/meet/${jobCandidateId}`)
+        const data = await response.json()
+        console.log("🔍 Meet - Direct API call result:", data)
+      } catch (error) {
+        console.error("🔍 Meet - Direct API call error:", error)
+      }
+    }
+    
+    if (jobCandidateId) {
+      testDirectApiCall()
+    }
+  }, [jobCandidateId])
+  
+  // Create the fetch function
+  const fetchMeetData = async (options) => {
+    console.log("🔍 Meet - fetchMeetData called with jobCandidateId:", jobCandidateId)
+    console.log("🔍 Meet - fetchMeetData options:", options)
+    try {
+      const result = await meetApi.getMeetData(jobCandidateId)
+      console.log("🔍 Meet - fetchMeetData result:", result)
+      return result
+    } catch (error) {
+      console.error("🔍 Meet - fetchMeetData error:", error)
+      throw error
+    }
+  }
+  
+  // Fetch meet data (candidate, job vacancy, and interview questions)
+  const { data: meetData, error, loading } = useFetch(
+    fetchMeetData,
+    {},
+    [jobCandidateId]
   )
 
-  const candidate = candidateData?.candidate || {}
+  const candidate = meetData?.candidate || {}
+  const jobVacancy = meetData?.job_vacancy || {}
+  const interviewQuestions = meetData?.interview_questions || []
   const jobVacancyId = candidate?.job_vacancy_id
+
+  // Debug logs
+  console.log("🔍 Meet - jobCandidateId:", jobCandidateId)
+  console.log("🔍 Meet - meetData:", meetData)
+  console.log("🔍 Meet - error:", error)
+  console.log("🔍 Meet - loading:", loading)
+  console.log("🔍 Meet - candidate:", candidate)
+  console.log("🔍 Meet - jobVacancyId:", jobVacancyId)
+
+  // Show loading if data is not yet loaded
+  if (loading) {
+    return <div className="container mx-auto py-8 text-center">Carregando dados do candidato...</div>
+  }
+
+  // Show error if there's an error
+  if (error) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <div className="text-red-600">
+          Erro ao carregar dados do candidato: {error.message}
+        </div>
+        <div className="mt-4 text-sm text-gray-600">
+          Candidate ID: {jobCandidateId}
+        </div>
+      </div>
+    )
+  }
+
+  // Show error if candidate has no job_vacancy_id
+  if (!jobVacancyId) {
+    return (
+      <div className="container mx-auto py-8 text-center">
+        <div className="text-red-600">
+          Erro: Candidato não possui vaga de emprego associada.
+        </div>
+        <div className="mt-4 text-sm text-gray-600">
+          Candidate ID: {jobCandidateId}
+        </div>
+        <div className="mt-2 text-sm text-gray-600">
+          Candidate data: {JSON.stringify(candidate, null, 2)}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <InterviewProvider jobVacancyId={jobVacancyId}>

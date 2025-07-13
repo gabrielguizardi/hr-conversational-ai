@@ -46,12 +46,14 @@ async def proxy_task(
                     print(
                         f"{name} intercepting setup message - applying backend configuration"
                     )
+                    print(f"Setup data received: {json.dumps(data, indent=2)}")
 
                     # Get interview questions if job_vacancy_id is provided
                     interview_questions = []
                     question_tags = {}
                     if "job_vacancy_id" in data.get("setup", {}):
                         job_vacancy_id = data["setup"]["job_vacancy_id"]
+                        print(f"Job vacancy ID found in setup: {job_vacancy_id}")
                         try:
                             questions = list(mongo_client_db.interview_questions.find({
                                 "job_vacancy_id": job_vacancy_id,
@@ -61,8 +63,13 @@ async def proxy_task(
                             # Create mapping of questions to tags
                             question_tags = {q["question"]: q.get("tag", "") for q in questions}
                             print(f"Found {len(interview_questions)} interview questions for job vacancy {job_vacancy_id}")
+                            print(f"Questions: {interview_questions}")
+                            print(f"Question tags: {question_tags}")
                         except Exception as e:
                             print(f"Error fetching interview questions: {e}")
+                            print(f"Full traceback: {traceback.format_exc()}")
+                    else:
+                        print("No job_vacancy_id found in setup data")
 
                     # Create context with interview questions
                     if interview_questions:
@@ -93,6 +100,13 @@ async def proxy_task(
                                     },
                                 },
                             },
+                            "system_instruction": {
+                                "parts": [
+                                    {
+                                        "text": "Você é um assistente de voz que fala APENAS em português do Brasil. Nunca responda em outros idiomas. Seja sempre educado, claro e objetivo em suas respostas."
+                                    }
+                                ]
+                            }
                         }
                     }
 
