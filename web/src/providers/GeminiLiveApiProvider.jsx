@@ -6,10 +6,11 @@ import { AudioStreamer } from "@/helpers/audioStreamer"
 
 import { wsUrl } from "@/services/application"
 
-const GeminiLiveApiProvider = ({ children, jobVacancyId = null }) => {
+const GeminiLiveApiProvider = ({ children, jobVacancyId = null, jobCandidateId = null }) => {
   const proxyUrl = `${wsUrl}/ws`
 
   console.log("🔧 GeminiLiveApiProvider initialized with jobVacancyId:", jobVacancyId)
+  console.log("🔧 GeminiLiveApiProvider initialized with jobCandidateId:", jobCandidateId)
 
   const client = useMemo(() => new GeminiLiveAPI(proxyUrl), [proxyUrl])
   const audioStreamerRef = useRef(null)
@@ -37,7 +38,7 @@ const GeminiLiveApiProvider = ({ children, jobVacancyId = null }) => {
     // Override sendSetupRequest to include jobVacancyId
     const originalSendSetupRequest = client.sendSetupRequest
     client.sendSetupRequest = (id) => {
-      originalSendSetupRequest.call(client, jobVacancyId || id)
+      originalSendSetupRequest.call(client, jobVacancyId || id, jobCandidateId || null)
     }
     client.onAudioData = (base64Audio) => {
       console.log("🔊 Processing audio from Gemini - base64 length:", base64Audio.length)
