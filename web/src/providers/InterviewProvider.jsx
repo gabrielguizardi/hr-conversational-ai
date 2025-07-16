@@ -1,9 +1,9 @@
 import { useMemo } from "react"
 import GeminiLiveApiProvider from "./GeminiLiveApiProvider"
 
-const InterviewProvider = ({ children, jobVacancyId }) => {
+const InterviewProvider = ({ children, jobVacancyId, jobCandidateId }) => {
   return (
-    <GeminiLiveApiProvider jobVacancyId={jobVacancyId}>
+    <GeminiLiveApiProvider jobVacancyId={jobVacancyId} jobCandidateId={jobCandidateId}>
       {children}
     </GeminiLiveApiProvider>
   )

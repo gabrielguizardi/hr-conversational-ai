@@ -347,6 +347,178 @@ async def get_interviews_by_candidate(candidate_id: str):
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
+@app.get("/interview_questions_asked")
+async def get_interview_questions_asked():
+    """
+    Get all questions asked during interviews.
+    """
+    try:
+        questions = list(mongo_client_db.interview_questions_asked.find({}).sort("asked_at", -1))
+        
+        for question in questions:
+            question["_id"] = str(question["_id"])
+            if question.get("interview_id"):
+                question["interview_id"] = str(question["interview_id"])
+            if question.get("candidate_id"):
+                question["candidate_id"] = str(question["candidate_id"])
+            if question.get("job_vacancy_id"):
+                question["job_vacancy_id"] = str(question["job_vacancy_id"])
+        
+        return {"interview_questions_asked": questions}
+        
+    except Exception as e:
+        logging.error(f"Error getting interview questions asked: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interview_questions_asked/interview/{interview_id}")
+async def get_interview_questions_asked_by_interview(interview_id: str):
+    """
+    Get questions asked during a specific interview.
+    """
+    try:
+        if not ObjectId.is_valid(interview_id):
+            raise HTTPException(status_code=400, detail="Invalid interview ID")
+        
+        questions = list(mongo_client_db.interview_questions_asked.find({
+            "interview_id": ObjectId(interview_id)
+        }).sort("question_number", 1))
+        
+        for question in questions:
+            question["_id"] = str(question["_id"])
+            if question.get("interview_id"):
+                question["interview_id"] = str(question["interview_id"])
+            if question.get("candidate_id"):
+                question["candidate_id"] = str(question["candidate_id"])
+            if question.get("job_vacancy_id"):
+                question["job_vacancy_id"] = str(question["job_vacancy_id"])
+        
+        return {"interview_questions_asked": questions}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting interview questions asked by interview: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interview_questions_asked/candidate/{candidate_id}")
+async def get_interview_questions_asked_by_candidate(candidate_id: str):
+    """
+    Get questions asked during interviews for a specific candidate.
+    """
+    try:
+        if not ObjectId.is_valid(candidate_id):
+            raise HTTPException(status_code=400, detail="Invalid candidate ID")
+        
+        questions = list(mongo_client_db.interview_questions_asked.find({
+            "candidate_id": ObjectId(candidate_id)
+        }).sort("asked_at", -1))
+        
+        for question in questions:
+            question["_id"] = str(question["_id"])
+            if question.get("interview_id"):
+                question["interview_id"] = str(question["interview_id"])
+            if question.get("candidate_id"):
+                question["candidate_id"] = str(question["candidate_id"])
+            if question.get("job_vacancy_id"):
+                question["job_vacancy_id"] = str(question["job_vacancy_id"])
+        
+        return {"interview_questions_asked": questions}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting interview questions asked by candidate: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interview_responses")
+async def get_interview_responses():
+    """
+    Get all interview responses.
+    """
+    try:
+        responses = list(mongo_client_db.interview_responses.find({}).sort("answered_at", -1))
+        
+        for response in responses:
+            response["_id"] = str(response["_id"])
+            if response.get("interview_id"):
+                response["interview_id"] = str(response["interview_id"])
+            if response.get("candidate_id"):
+                response["candidate_id"] = str(response["candidate_id"])
+            if response.get("job_vacancy_id"):
+                response["job_vacancy_id"] = str(response["job_vacancy_id"])
+        
+        return {"interview_responses": responses}
+        
+    except Exception as e:
+        logging.error(f"Error getting interview responses: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interview_responses/interview/{interview_id}")
+async def get_interview_responses_by_interview(interview_id: str):
+    """
+    Get responses for a specific interview.
+    """
+    try:
+        if not ObjectId.is_valid(interview_id):
+            raise HTTPException(status_code=400, detail="Invalid interview ID")
+        
+        responses = list(mongo_client_db.interview_responses.find({
+            "interview_id": ObjectId(interview_id)
+        }).sort("answered_at", 1))
+        
+        for response in responses:
+            response["_id"] = str(response["_id"])
+            if response.get("interview_id"):
+                response["interview_id"] = str(response["interview_id"])
+            if response.get("candidate_id"):
+                response["candidate_id"] = str(response["candidate_id"])
+            if response.get("job_vacancy_id"):
+                response["job_vacancy_id"] = str(response["job_vacancy_id"])
+        
+        return {"interview_responses": responses}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting interview responses by interview: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@app.get("/interview_responses/candidate/{candidate_id}")
+async def get_interview_responses_by_candidate(candidate_id: str):
+    """
+    Get responses for a specific candidate.
+    """
+    try:
+        if not ObjectId.is_valid(candidate_id):
+            raise HTTPException(status_code=400, detail="Invalid candidate ID")
+        
+        responses = list(mongo_client_db.interview_responses.find({
+            "candidate_id": ObjectId(candidate_id)
+        }).sort("answered_at", -1))
+        
+        for response in responses:
+            response["_id"] = str(response["_id"])
+            if response.get("interview_id"):
+                response["interview_id"] = str(response["interview_id"])
+            if response.get("candidate_id"):
+                response["candidate_id"] = str(response["candidate_id"])
+            if response.get("job_vacancy_id"):
+                response["job_vacancy_id"] = str(response["job_vacancy_id"])
+        
+        return {"interview_responses": responses}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Error getting interview responses by candidate: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
 @app.post("/job_vacancies")
 async def create_job_vacancy(job_vacancy: dict):
     """
@@ -442,6 +614,8 @@ async def get_meet_data(candidate_id: str):
     Get candidate and job vacancy data for the meet page.
     """
     try:
+        print(f"🔍 get_meet_data - candidate_id: {candidate_id}")
+        
         if not ObjectId.is_valid(candidate_id):
             raise HTTPException(status_code=400, detail="Invalid candidate ID")
 
@@ -452,11 +626,13 @@ async def get_meet_data(candidate_id: str):
             raise HTTPException(status_code=404, detail="Candidate not found")
 
         candidate["_id"] = str(candidate["_id"])
+        print(f"🔍 get_meet_data - candidate found: {candidate}")
         
         # Get job vacancy data if candidate has job_vacancy_id
         job_vacancy = None
         if candidate.get("job_vacancy_id"):
             candidate["job_vacancy_id"] = str(candidate["job_vacancy_id"])
+            print(f"🔍 get_meet_data - job_vacancy_id: {candidate['job_vacancy_id']}")
             
             job_vacancy = mongo_client_db.job_vacancies.find_one({
                 "_id": ObjectId(candidate["job_vacancy_id"])
@@ -464,14 +640,32 @@ async def get_meet_data(candidate_id: str):
             
             if job_vacancy:
                 job_vacancy["_id"] = str(job_vacancy["_id"])
+                print(f"🔍 get_meet_data - job_vacancy found: {job_vacancy}")
+            else:
+                print(f"🔍 get_meet_data - job_vacancy not found for ID: {candidate['job_vacancy_id']}")
+        else:
+            print(f"🔍 get_meet_data - candidate has no job_vacancy_id")
         
         # Get interview questions for this job vacancy
         interview_questions = []
         if candidate.get("job_vacancy_id"):
+            # Try to find questions with string comparison first
             questions = list(mongo_client_db.interview_questions.find({
                 "job_vacancy_id": candidate["job_vacancy_id"],
                 "active": True
             }))
+            
+            # If no questions found, try with ObjectId
+            if not questions:
+                try:
+                    questions = list(mongo_client_db.interview_questions.find({
+                        "job_vacancy_id": ObjectId(candidate["job_vacancy_id"]),
+                        "active": True
+                    }))
+                    print(f"Found {len(questions)} questions using ObjectId conversion")
+                except Exception as e:
+                    print(f"Error converting to ObjectId: {e}")
+                    questions = []
             
             for question in questions:
                 question["_id"] = str(question["_id"])
@@ -479,6 +673,8 @@ async def get_meet_data(candidate_id: str):
             
             interview_questions = questions
 
+        print(f"🔍 get_meet_data - returning data: candidate={candidate is not None}, job_vacancy={job_vacancy is not None}, questions={len(interview_questions)}")
+        
         return {
             "candidate": candidate,
             "job_vacancy": job_vacancy,

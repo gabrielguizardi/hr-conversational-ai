@@ -19,6 +19,11 @@ Esta funcionalidade permite configurar perguntas específicas que o Gemini deve 
 - `GET /interviews/{interview_id}` - Busca entrevista por ID
 - `GET /interviews/candidate/{candidate_id}` - Lista entrevistas de um candidato
 
+#### Endpoints de Perguntas Feitas:
+- `GET /interview_questions_asked` - Lista todas as perguntas feitas
+- `GET /interview_questions_asked/interview/{interview_id}` - Lista perguntas de uma entrevista específica
+- `GET /interview_questions_asked/candidate/{candidate_id}` - Lista perguntas de um candidato específico
+
 #### Endpoint de Candidato:
 - `GET /candidates/{candidate_id}` - Busca candidato por ID
 
@@ -37,11 +42,13 @@ Esta funcionalidade permite configurar perguntas específicas que o Gemini deve 
 #### Serviços:
 - `interview-questions.js` - API para gerenciar perguntas
 - `interviews.js` - API para gerenciar entrevistas e respostas
+- `interview-questions-asked.js` - API para acessar perguntas feitas
 - Atualização em `candidates.js` - Adicionado método `show`
 
 #### Páginas:
 - Atualização em `job-vacancy-show.jsx` - Botão para gerenciar perguntas
-- Atualização em `meet.jsx` - Usa InterviewProvider com jobVacancyId
+- Atualização em `meet.jsx` - Usa InterviewProvider com jobVacancyId e mostra perguntas feitas
+- `interview-questions-asked.jsx` - Página para visualizar histórico de perguntas feitas
 
 ## Como Usar
 
@@ -112,6 +119,20 @@ Quando há perguntas configuradas, o Gemini:
     "experiencia_anos": "3 anos"
   },
   "questions_asked": ["array of questions"]
+}
+```
+
+### Pergunta Feita:
+```json
+{
+  "_id": "string",
+  "interview_id": "string",
+  "candidate_id": "string",
+  "job_vacancy_id": "string",
+  "question_text": "string",
+  "question_number": "number",
+  "asked_at": "datetime",
+  "status": "asked|answered|skipped"
 }
 ```
 

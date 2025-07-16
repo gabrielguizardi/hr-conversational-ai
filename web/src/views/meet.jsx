@@ -12,6 +12,8 @@ import { useParams } from "react-router"
 import InterviewProvider from "@/providers/InterviewProvider"
 import meetApi from "@/services/api/meet"
 import interviewsApi from "@/services/api/interviews"
+import interviewQuestionsAskedApi from "@/services/api/interview-questions-asked"
+import interviewResponsesApi from "@/services/api/interview-responses"
 import useFetch from "@/hooks/useFetch"
 
 const MeetContent = () => {
@@ -22,6 +24,8 @@ const MeetContent = () => {
   const [interviewId, setInterviewId] = useState(null)
   const [responses, setResponses] = useState({})
   const [isInterviewStarted, setIsInterviewStarted] = useState(false)
+  const [questionsAsked, setQuestionsAsked] = useState([])
+  const [savedResponses, setSavedResponses] = useState([])
   const connectButtonRef = useRef(null)
 
   // Fetch meet data (candidate, job vacancy, and interview questions)
@@ -35,6 +39,34 @@ const MeetContent = () => {
   const jobVacancy = meetData?.job_vacancy || {}
   const interviewQuestions = meetData?.interview_questions || []
   const jobVacancyId = candidate?.job_vacancy_id
+
+  // Fetch questions asked during this interview
+  const { data: questionsAskedData } = useFetch(
+    () => interviewQuestionsAskedApi.getByCandidate({ candidateId: jobCandidateId }),
+    {},
+    [jobCandidateId]
+  )
+
+  // Fetch responses for this candidate
+  const { data: responsesData } = useFetch(
+    () => interviewResponsesApi.getByCandidate({ candidateId: jobCandidateId }),
+    {},
+    [jobCandidateId]
+  )
+
+  // Update questions asked state when data changes
+  useEffect(() => {
+    if (questionsAskedData?.interview_questions_asked) {
+      setQuestionsAsked(questionsAskedData.interview_questions_asked)
+    }
+  }, [questionsAskedData])
+
+  // Update saved responses state when data changes
+  useEffect(() => {
+    if (responsesData?.interview_responses) {
+      setSavedResponses(responsesData.interview_responses)
+    }
+  }, [responsesData])
   
   const { client, connected, connect, disconnect } = useGeminiLiveApi()
 
@@ -230,6 +262,52 @@ const MeetContent = () => {
 
 
 
+      {questionsAsked.length > 0 && (
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Perguntas Feitas</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {questionsAsked.map((question) => (
+                <div key={question._id} className="flex justify-between items-start p-2 bg-blue-50 rounded">
+                  <div className="flex-1">
+                    <span className="font-medium text-sm">Pergunta {question.question_number}:</span>
+                    <p className="text-sm text-gray-700 mt-1">{question.question_text}</p>
+                  </div>
+                  <span className="text-xs text-gray-500 ml-2">
+                    {new Date(question.asked_at).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {savedResponses.length > 0 && (
+        <Card className="w-full max-w-2xl mx-auto">
+          <CardHeader>
+            <CardTitle>Respostas Salvas no Banco</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {savedResponses.map((response) => (
+                <div key={response._id} className="flex justify-between items-start p-2 bg-green-50 rounded">
+                  <div className="flex-1">
+                    <span className="font-medium text-sm">{response.tag}:</span>
+                    <p className="text-sm text-gray-700 mt-1">{response.response}</p>
+                  </div>
+                  <span className="text-xs text-gray-500 ml-2">
+                    {new Date(response.answered_at).toLocaleTimeString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {isInterviewStarted && Object.keys(responses).length > 0 && (
         <Card className="w-full max-w-2xl mx-auto">
           <CardHeader>
@@ -346,7 +424,7 @@ const Meet = () => {
   }
 
   return (
-    <InterviewProvider jobVacancyId={jobVacancyId}>
+    <InterviewProvider jobVacancyId={jobVacancyId} jobCandidateId={jobCandidateId}>
       <MeetContent />
     </InterviewProvider>
   )

@@ -112,7 +112,7 @@ class GeminiLiveAPI {
     }
   }
 
-  sendSetupRequest(jobVacancyId = null) {
+  sendSetupRequest(jobVacancyId = null, jobCandidateId = null) {
     // Send a minimal setup request - backend will handle the actual configuration
     const setupMessage = {
       setup: {},
@@ -124,6 +124,14 @@ class GeminiLiveAPI {
       console.log("🔍 Job vacancy ID included in setup:", jobVacancyId)
     } else {
       console.log("⚠️ No job vacancy ID provided for setup")
+    }
+
+    // Add job candidate ID if provided
+    if (jobCandidateId) {
+      setupMessage.setup.job_candidate_id = jobCandidateId
+      console.log("🔍 Job candidate ID included in setup:", jobCandidateId)
+    } else {
+      console.log("⚠️ No job candidate ID provided for setup")
     }
 
     if (this.ws.readyState === WebSocket.OPEN) {
