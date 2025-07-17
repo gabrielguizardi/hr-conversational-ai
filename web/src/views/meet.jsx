@@ -1,3 +1,4 @@
+import { useParams } from "react-router"
 import { useEffect, useRef, useState, useCallback } from "react"
 import { MicIcon, MicOffIcon } from "lucide-react"
 
@@ -5,18 +6,19 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ScrollArea } from "@/components/ui/scroll-area"
 
-import { AudioRecorder } from "@/helpers/audioRecorder"
-import { useGeminiLiveApi } from "@/hooks/useGeminiLiveApi"
-import { isDevelopment } from "@/services/application"
-import { useParams } from "react-router"
 import InterviewProvider from "@/providers/InterviewProvider"
-import meetApi from "@/services/api/meet"
+
+import { useGeminiLiveApi } from "@/hooks/useGeminiLiveApi"
+import useFetch from "@/hooks/useFetch"
+
+import { AudioRecorder } from "@/helpers/audioRecorder"
+import { isDevelopment } from "@/services/application"
+import candidatesApi from "@/services/api/candidates"
 import interviewsApi from "@/services/api/interviews"
 import interviewQuestionsAskedApi from "@/services/api/interview-questions-asked"
 import interviewResponsesApi from "@/services/api/interview-responses"
-import useFetch from "@/hooks/useFetch"
 
-const MeetContent = () => {
+const MeetContent = ({ meetData }) => {
   const { jobCandidateId } = useParams()
   const [audioRecorder] = useState(() => new AudioRecorder())
   const [muted, setMuted] = useState(false)
@@ -28,29 +30,23 @@ const MeetContent = () => {
   const [savedResponses, setSavedResponses] = useState([])
   const connectButtonRef = useRef(null)
 
-  // Fetch meet data (candidate, job vacancy, and interview questions)
-  const { data: meetData } = useFetch(
-    () => meetApi.getMeetData(jobCandidateId),
-    {},
-    [jobCandidateId]
-  )
-
   const candidate = meetData?.candidate || {}
-  const jobVacancy = meetData?.job_vacancy || {}
-  const interviewQuestions = meetData?.interview_questions || []
   const jobVacancyId = candidate?.job_vacancy_id
 
   // Fetch questions asked during this interview
   const { data: questionsAskedData } = useFetch(
-    () => interviewQuestionsAskedApi.getByCandidate({ candidateId: jobCandidateId }),
+    () =>
+      interviewQuestionsAskedApi.getByCandidate({
+        candidateId: jobCandidateId,
+      }),
     {},
     [jobCandidateId]
   )
 
   // Fetch responses for this candidate
   const { data: responsesData } = useFetch(
-    () => interviewResponsesApi.getByCandidate({ candidateId: jobCandidateId }),
-    {},
+    interviewResponsesApi.getByCandidate,
+    { candidateId: jobCandidateId },
     [jobCandidateId]
   )
 
@@ -67,7 +63,7 @@ const MeetContent = () => {
       setSavedResponses(responsesData.interview_responses)
     }
   }, [responsesData])
-  
+
   const { client, connected, connect, disconnect } = useGeminiLiveApi()
 
   const addLog = useCallback((message) => {
@@ -99,28 +95,34 @@ const MeetContent = () => {
   }, [jobCandidateId, jobVacancyId, addLog])
 
   // Save responses to database
-  const saveResponses = useCallback(async (newResponses, status = "in_progress") => {
-    if (!interviewId) {
-      addLog("Erro: ID da entrevista não encontrado")
-      return
-    }
+  const saveResponses = useCallback(
+    async (newResponses, status = "in_progress") => {
+      if (!interviewId) {
+        addLog("Erro: ID da entrevista não encontrado")
+        return
+      }
 
-    try {
-      await interviewsApi.updateResponses({
-        id: interviewId,
-        responses: newResponses,
-        status,
-      })
-      addLog(`Respostas salvas - Status: ${status}`)
-    } catch (error) {
-      console.error("Error saving responses:", error)
-      addLog("Erro ao salvar respostas: " + error.message)
-    }
-  }, [interviewId, addLog])
+      try {
+        await interviewsApi.updateResponses({
+          id: interviewId,
+          responses: newResponses,
+          status,
+        })
+        addLog(`Respostas salvas - Status: ${status}`)
+      } catch (error) {
+        console.error("Error saving responses:", error)
+        addLog("Erro ao salvar respostas: " + error.message)
+      }
+    },
+    [interviewId, addLog]
+  )
 
   useEffect(() => {
     const onData = (base64) => {
-      console.log("📤 Sending audio chunk to Gemini - base64 length:", base64.length)
+      console.log(
+        "📤 Sending audio chunk to Gemini - base64 length:",
+        base64.length
+      )
       if (client && typeof client.sendAudioChunk === "function") {
         client.sendAudioChunk(base64)
       } else {
@@ -177,7 +179,7 @@ const MeetContent = () => {
       }
     }
     client.onError = (error) => addLog(`Error: ${error}`)
-    
+
     // Handle tool calls for response collection
     client.onToolCall = (toolCall) => {
       if (toolCall.function_name === "save_response") {
@@ -260,8 +262,6 @@ const MeetContent = () => {
         </Card>
       )}
 
-
-
       {questionsAsked.length > 0 && (
         <Card className="w-full max-w-2xl mx-auto">
           <CardHeader>
@@ -270,10 +270,17 @@ const MeetContent = () => {
           <CardContent>
             <div className="space-y-2">
               {questionsAsked.map((question) => (
-                <div key={question._id} className="flex justify-between items-start p-2 bg-blue-50 rounded">
+                <div
+                  key={question._id}
+                  className="flex justify-between items-start p-2 bg-blue-50 rounded"
+                >
                   <div className="flex-1">
-                    <span className="font-medium text-sm">Pergunta {question.question_number}:</span>
-                    <p className="text-sm text-gray-700 mt-1">{question.question_text}</p>
+                    <span className="font-medium text-sm">
+                      Pergunta {question.question_number}:
+                    </span>
+                    <p className="text-sm text-gray-700 mt-1">
+                      {question.question_text}
+                    </p>
                   </div>
                   <span className="text-xs text-gray-500 ml-2">
                     {new Date(question.asked_at).toLocaleTimeString()}
@@ -293,10 +300,15 @@ const MeetContent = () => {
           <CardContent>
             <div className="space-y-2">
               {savedResponses.map((response) => (
-                <div key={response._id} className="flex justify-between items-start p-2 bg-green-50 rounded">
+                <div
+                  key={response._id}
+                  className="flex justify-between items-start p-2 bg-green-50 rounded"
+                >
                   <div className="flex-1">
                     <span className="font-medium text-sm">{response.tag}:</span>
-                    <p className="text-sm text-gray-700 mt-1">{response.response}</p>
+                    <p className="text-sm text-gray-700 mt-1">
+                      {response.response}
+                    </p>
                   </div>
                   <span className="text-xs text-gray-500 ml-2">
                     {new Date(response.answered_at).toLocaleTimeString()}
@@ -316,9 +328,14 @@ const MeetContent = () => {
           <CardContent>
             <div className="space-y-2">
               {Object.entries(responses).map(([tag, response]) => (
-                <div key={tag} className="flex justify-between items-start p-2 bg-gray-50 rounded">
+                <div
+                  key={tag}
+                  className="flex justify-between items-start p-2 bg-gray-50 rounded"
+                >
                   <span className="font-medium text-sm">{tag}:</span>
-                  <span className="text-sm text-gray-700 max-w-xs">{response}</span>
+                  <span className="text-sm text-gray-700 max-w-xs">
+                    {response}
+                  </span>
                 </div>
               ))}
             </div>
@@ -331,52 +348,20 @@ const MeetContent = () => {
 
 const Meet = () => {
   const { jobCandidateId } = useParams()
-  
-  console.log("🔍 Meet - Component rendered with jobCandidateId:", jobCandidateId)
-  console.log("🔍 Meet - apiUrl from application:", import.meta.env.VITE_API_URL || "http://localhost:3001")
-  
-  // Test direct API call
-  useEffect(() => {
-    const testDirectApiCall = async () => {
-      try {
-        console.log("🔍 Meet - Testing direct API call...")
-        const response = await fetch(`http://localhost:3001/meet/${jobCandidateId}`)
-        const data = await response.json()
-        console.log("🔍 Meet - Direct API call result:", data)
-      } catch (error) {
-        console.error("🔍 Meet - Direct API call error:", error)
-      }
-    }
-    
-    if (jobCandidateId) {
-      testDirectApiCall()
-    }
-  }, [jobCandidateId])
-  
-  // Create the fetch function
-  const fetchMeetData = async (options) => {
-    console.log("🔍 Meet - fetchMeetData called with jobCandidateId:", jobCandidateId)
-    console.log("🔍 Meet - fetchMeetData options:", options)
-    try {
-      const result = await meetApi.getMeetData(jobCandidateId)
-      console.log("🔍 Meet - fetchMeetData result:", result)
-      return result
-    } catch (error) {
-      console.error("🔍 Meet - fetchMeetData error:", error)
-      throw error
-    }
-  }
-  
-  // Fetch meet data (candidate, job vacancy, and interview questions)
-  const { data: meetData, error, loading } = useFetch(
-    fetchMeetData,
-    {},
-    [jobCandidateId]
+
+  console.log(
+    "🔍 Meet - Component rendered with jobCandidateId:",
+    jobCandidateId
   )
 
+  // Fetch meet data (candidate, job vacancy, and interview questions)
+  const {
+    data: meetData,
+    error,
+    loading,
+  } = useFetch(candidatesApi.meet, { id: jobCandidateId }, [jobCandidateId])
+
   const candidate = meetData?.candidate || {}
-  const jobVacancy = meetData?.job_vacancy || {}
-  const interviewQuestions = meetData?.interview_questions || []
   const jobVacancyId = candidate?.job_vacancy_id
 
   // Debug logs
@@ -389,7 +374,11 @@ const Meet = () => {
 
   // Show loading if data is not yet loaded
   if (loading) {
-    return <div className="container mx-auto py-8 text-center">Carregando dados do candidato...</div>
+    return (
+      <div className="container mx-auto py-8 text-center">
+        Carregando dados do candidato...
+      </div>
+    )
   }
 
   // Show error if there's an error
@@ -424,8 +413,11 @@ const Meet = () => {
   }
 
   return (
-    <InterviewProvider jobVacancyId={jobVacancyId} jobCandidateId={jobCandidateId}>
-      <MeetContent />
+    <InterviewProvider
+      jobVacancyId={jobVacancyId}
+      jobCandidateId={jobCandidateId}
+    >
+      <MeetContent meetData={meetData} />
     </InterviewProvider>
   )
 }

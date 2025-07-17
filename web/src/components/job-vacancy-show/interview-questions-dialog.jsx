@@ -48,7 +48,7 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    
+
     try {
       if (editingQuestion) {
         await interviewQuestionsApi.update({
@@ -61,16 +61,16 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
           job_vacancy_id: jobVacancyId,
         })
       }
-      
-           setFormData({
-       question: "",
-       category: "personal",
-       difficulty: "easy",
-       active: true,
-       tag: "",
-     })
-     setEditingQuestion(null)
-     refreshQuestions()
+
+      setFormData({
+        question: "",
+        category: "personal",
+        difficulty: "easy",
+        active: true,
+        tag: "",
+      })
+      setEditingQuestion(null)
+      refreshQuestions()
     } catch (error) {
       console.error("Error saving question:", error)
       alert("Erro ao salvar pergunta. Tente novamente.")
@@ -91,7 +91,7 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
     if (!confirm("Tem certeza que deseja excluir esta pergunta?")) {
       return
     }
-    
+
     try {
       await interviewQuestionsApi.remove({ id: questionId })
       refreshQuestions()
@@ -101,16 +101,16 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
     }
   }
 
-     const handleCancel = () => {
-     setEditingQuestion(null)
-     setFormData({
-       question: "",
-       category: "personal",
-       difficulty: "easy",
-       active: true,
-       tag: "",
-     })
-   }
+  const handleCancel = () => {
+    setEditingQuestion(null)
+    setFormData({
+      question: "",
+      category: "personal",
+      difficulty: "easy",
+      active: true,
+      tag: "",
+    })
+  }
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
@@ -125,22 +125,22 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
     }
   }
 
-     const getCategoryColor = (category) => {
-     switch (category) {
-       case "personal":
-         return "bg-blue-100 text-blue-800"
-       case "experience":
-         return "bg-green-100 text-green-800"
-       case "education":
-         return "bg-purple-100 text-purple-800"
-       case "skills":
-         return "bg-orange-100 text-orange-800"
-       case "availability":
-         return "bg-yellow-100 text-yellow-800"
-       default:
-         return "bg-gray-100 text-gray-800"
-     }
-   }
+  const getCategoryColor = (category) => {
+    switch (category) {
+      case "personal":
+        return "bg-blue-100 text-blue-800"
+      case "experience":
+        return "bg-green-100 text-green-800"
+      case "education":
+        return "bg-purple-100 text-purple-800"
+      case "skills":
+        return "bg-orange-100 text-orange-800"
+      case "availability":
+        return "bg-yellow-100 text-yellow-800"
+      default:
+        return "bg-gray-100 text-gray-800"
+    }
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -150,7 +150,7 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
           Gerenciar Perguntas
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh]">
+      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Perguntas de Entrevista</DialogTitle>
           <DialogDescription>
@@ -181,63 +181,70 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
                   />
                 </div>
 
-                                 <div className="grid grid-cols-2 gap-4">
-                   <div>
-                     <Label htmlFor="category">Categoria</Label>
-                     <Select
-                       value={formData.category}
-                       onValueChange={(value) =>
-                         setFormData({ ...formData, category: value })
-                       }
-                     >
-                       <SelectTrigger>
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="personal">Dados Pessoais</SelectItem>
-                         <SelectItem value="experience">Experiência Profissional</SelectItem>
-                         <SelectItem value="education">Formação Acadêmica</SelectItem>
-                         <SelectItem value="skills">Habilidades</SelectItem>
-                         <SelectItem value="availability">Disponibilidade</SelectItem>
-                       </SelectContent>
-                     </Select>
-                   </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category">Categoria</Label>
+                    <Select
+                      value={formData.category}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, category: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="personal">Dados Pessoais</SelectItem>
+                        <SelectItem value="experience">
+                          Experiência Profissional
+                        </SelectItem>
+                        <SelectItem value="education">
+                          Formação Acadêmica
+                        </SelectItem>
+                        <SelectItem value="skills">Habilidades</SelectItem>
+                        <SelectItem value="availability">
+                          Disponibilidade
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-                   <div>
-                     <Label htmlFor="difficulty">Dificuldade</Label>
-                     <Select
-                       value={formData.difficulty}
-                       onValueChange={(value) =>
-                         setFormData({ ...formData, difficulty: value })
-                       }
-                     >
-                       <SelectTrigger>
-                         <SelectValue />
-                       </SelectTrigger>
-                       <SelectContent>
-                         <SelectItem value="easy">Fácil</SelectItem>
-                         <SelectItem value="medium">Médio</SelectItem>
-                         <SelectItem value="hard">Difícil</SelectItem>
-                       </SelectContent>
-                     </Select>
-                   </div>
-                 </div>
+                  <div>
+                    <Label htmlFor="difficulty">Dificuldade</Label>
+                    <Select
+                      value={formData.difficulty}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, difficulty: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="easy">Fácil</SelectItem>
+                        <SelectItem value="medium">Médio</SelectItem>
+                        <SelectItem value="hard">Difícil</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
 
-                 <div>
-                   <Label htmlFor="tag">Tag (Nome do campo no banco)</Label>
-                   <Input
-                     id="tag"
-                     value={formData.tag}
-                     onChange={(e) =>
-                       setFormData({ ...formData, tag: e.target.value })
-                     }
-                     placeholder="Ex: nome, idade, experiencia_anos, etc."
-                     required
-                   />
-                   <p className="text-xs text-gray-500 mt-1">
-                     Este será o nome do campo onde a resposta será salva no banco de dados
-                   </p>
-                 </div>
+                <div>
+                  <Label htmlFor="tag">Tag (Nome do campo no banco)</Label>
+                  <Input
+                    id="tag"
+                    value={formData.tag}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tag: e.target.value })
+                    }
+                    placeholder="Ex: nome, idade, experiencia_anos, etc."
+                    required
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Este será o nome do campo onde a resposta será salva no
+                    banco de dados
+                  </p>
+                </div>
 
                 <div className="flex gap-2">
                   <Button type="submit">
@@ -245,7 +252,11 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
                     {editingQuestion ? "Atualizar" : "Adicionar"}
                   </Button>
                   {editingQuestion && (
-                    <Button type="button" variant="outline" onClick={handleCancel}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleCancel}
+                    >
                       <XIcon className="h-4 w-4 mr-2" />
                       Cancelar
                     </Button>
@@ -292,22 +303,26 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
                             </Button>
                           </div>
                         </div>
-                                                 <div className="flex gap-2">
-                           <Badge className={getCategoryColor(question.category)}>
-                             {question.category}
-                           </Badge>
-                           <Badge className={getDifficultyColor(question.difficulty)}>
-                             {question.difficulty}
-                           </Badge>
-                           {question.tag && (
-                             <Badge variant="outline" className="text-xs">
-                               Tag: {question.tag}
-                             </Badge>
-                           )}
-                           {!question.active && (
-                             <Badge variant="secondary">Inativa</Badge>
-                           )}
-                         </div>
+                        <div className="flex gap-2">
+                          <Badge
+                            className={getCategoryColor(question.category)}
+                          >
+                            {question.category}
+                          </Badge>
+                          <Badge
+                            className={getDifficultyColor(question.difficulty)}
+                          >
+                            {question.difficulty}
+                          </Badge>
+                          {question.tag && (
+                            <Badge variant="outline" className="text-xs">
+                              Tag: {question.tag}
+                            </Badge>
+                          )}
+                          {!question.active && (
+                            <Badge variant="secondary">Inativa</Badge>
+                          )}
+                        </div>
                       </div>
                     ))
                   )}
@@ -321,4 +336,4 @@ const InterviewQuestionsDialog = ({ jobVacancyId }) => {
   )
 }
 
-export { InterviewQuestionsDialog } 
+export { InterviewQuestionsDialog }

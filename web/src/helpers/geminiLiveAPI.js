@@ -52,8 +52,9 @@ class GeminiLiveAPI {
           hasSetupComplete: !!wsResponse.setupComplete,
           hasToolCall: !!wsResponse.toolCall,
           hasServerContent: !!wsResponse.serverContent,
-          hasAudioData: !!(wsResponse.serverContent?.modelTurn?.parts?.[0]?.inlineData),
-          turnComplete: wsResponse.serverContent?.turnComplete
+          hasAudioData:
+            !!wsResponse.serverContent?.modelTurn?.parts?.[0]?.inlineData,
+          turnComplete: wsResponse.serverContent?.turnComplete,
         })
 
         if (wsResponse.authComplete) {
@@ -63,6 +64,7 @@ class GeminiLiveAPI {
 
         if (wsResponse.setupComplete) {
           this.onSetupComplete()
+          this.sendInitialMessage()
         } else if (wsResponse.toolCall) {
           this.onToolCall(wsResponse.toolCall)
         } else if (wsResponse.serverContent) {
@@ -74,7 +76,10 @@ class GeminiLiveAPI {
           if (wsResponse.serverContent.modelTurn?.parts?.[0]?.inlineData) {
             const audioData =
               wsResponse.serverContent.modelTurn.parts[0].inlineData.data
-            console.log("🎵 Audio data received from Gemini - base64 length:", audioData.length)
+            console.log(
+              "🎵 Audio data received from Gemini - base64 length:",
+              audioData.length
+            )
             this.onAudioData(audioData)
 
             if (!wsResponse.serverContent.turnComplete) {
@@ -139,7 +144,10 @@ class GeminiLiveAPI {
       this.ws.send(JSON.stringify(setupMessage))
       this.isSetupSent = true
     } else {
-      console.error("❌ WebSocket not ready for setup. State:", this.ws.readyState)
+      console.error(
+        "❌ WebSocket not ready for setup. State:",
+        this.ws.readyState
+      )
     }
   }
 
@@ -154,8 +162,29 @@ class GeminiLiveAPI {
         ],
       },
     }
-    console.log("📡 WebSocket sending audio chunk - data length:", base64Audio.length)
+    console.log(
+      "📡 WebSocket sending audio chunk - data length:",
+      base64Audio.length
+    )
     this.sendMessage(message)
+  }
+
+  sendInitialMessage() {
+    const message = {
+      client_content: {
+        turns: [
+          {
+            role: "user",
+            parts: [{ text: "Olá! Se apresente e inicie a entrevista." }],
+          },
+        ],
+        turn_complete: true,
+      },
+    }
+    setTimeout(() => {
+      this.sendMessage(message)
+      console.log("🔄 Initial message sent to Gemini")
+    }, 1000)
   }
 
   sendEndMessage() {

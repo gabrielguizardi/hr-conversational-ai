@@ -20,15 +20,18 @@ active_client_connections = set()
 mongo_client = MongoClient(os.environ.get("MONGODB_URI"))
 mongo_client_db = mongo_client.hr_conversational_ai
 
-def save_response_in_db(interview_id, tag, response, candidate_id=None, job_vacancy_id=None):
+
+def save_response_in_db(
+    interview_id, tag, response, candidate_id=None, job_vacancy_id=None
+):
     try:
-# 1. Defina o FILTRO para encontrar o documento
+        # 1. Defina o FILTRO para encontrar o documento
         # Um documento de resposta é único pela combinação de entrevista, candidato, vaga e a tag da pergunta.
         filter_doc = {
             "interview_id": ObjectId(interview_id) if interview_id else None,
             "candidate_id": ObjectId(candidate_id) if candidate_id else None,
             "job_vacancy_id": ObjectId(job_vacancy_id) if job_vacancy_id else None,
-            "tag": tag
+            "tag": tag,
         }
 
         # 2. Defina a ATUALIZAÇÃO usando o operador $set
@@ -40,15 +43,13 @@ def save_response_in_db(interview_id, tag, response, candidate_id=None, job_vaca
                 "interview_id": ObjectId(interview_id) if interview_id else None,
                 "candidate_id": ObjectId(candidate_id) if candidate_id else None,
                 "job_vacancy_id": ObjectId(job_vacancy_id) if job_vacancy_id else None,
-                "tag": tag
+                "tag": tag,
             }
         }
 
         # 3. Execute o comando upsert
         result = mongo_client_db.interview_responses.update_one(
-            filter_doc, 
-            update_doc, 
-            upsert=True
+            filter_doc, update_doc, upsert=True
         )
         print(f"✅ Resposta salva: {tag} = {response}")
         return str(result.upserted_id)
@@ -56,12 +57,13 @@ def save_response_in_db(interview_id, tag, response, candidate_id=None, job_vaca
         print(f"❌ Erro ao salvar resposta: {e}")
         return None
 
+
 async def proxy_task(
     source_websocket: WebSocketCommonProtocol,
     target_websocket: WebSocketCommonProtocol,
     name: str = "",
     gemini_client: GeminiClient = None,
-    interview_state = None,
+    interview_state=None,
 ) -> None:
     """
     Forwards messages from one WebSocket connection to another.
@@ -86,25 +88,24 @@ async def proxy_task(
                     if "job_vacancy_id" in data.get("setup", {}):
                         job_vacancy_id = data["setup"]["job_vacancy_id"]
                         try:
-                            questions = list(mongo_client_db.interview_questions.find({
-                                "job_vacancy_id": job_vacancy_id,
-                                "active": True
-                            }))
-                            if not questions:
-                                try:
-                                    from bson.objectid import ObjectId
-                                    questions = list(mongo_client_db.interview_questions.find({
-                                        "job_vacancy_id": ObjectId(job_vacancy_id),
-                                        "active": True
-                                    }))
-                                except Exception:
-                                    questions = []
+                            questions = list(
+                                mongo_client_db.interview_questions.find(
+                                    {"job_vacancy_id": job_vacancy_id, "active": True}
+                                )
+                            )
+
                             interview_questions = [q["question"] for q in questions]
-                            question_tags = {q["question"]: q.get("tag", "") for q in questions}
+                            question_tags = {
+                                q["question"]: q.get("tag", "") for q in questions
+                            }
                             interview_state["job_vacancy_id"] = job_vacancy_id
-                            interview_state["total_questions"] = len(interview_questions)
+                            interview_state["total_questions"] = len(
+                                interview_questions
+                            )
                             if "job_candidate_id" in data.get("setup", {}):
-                                interview_state["candidate_id"] = data["setup"]["job_candidate_id"]
+                                interview_state["candidate_id"] = data["setup"][
+                                    "job_candidate_id"
+                                ]
                         except Exception as e:
                             print(f"Error fetching interview questions: {e}")
                             print(f"Full traceback: {traceback.format_exc()}")
@@ -128,7 +129,7 @@ async def proxy_task(
                         context += "- Esta tool DEVE ser chamada após CADA uma das perguntas ter sido respondida.\n"
                         context += "- Você deve passar para ela um único argumento: `response_json`.\n"
                         context += "- O valor deste argumento DEVE ser uma STRING JSON contendo a tag e a resposta que você coletou.\n"
-                        context += "- Exemplo de chamada: save_response(response_json='{\"nome_completo\":\"João da Silva\"}')\n"
+                        context += '- Exemplo de chamada: save_response(response_json=\'{"nome_completo":"João da Silva"}\')\n'
 
                         context += "USO DA TOOL `submit_interview`:\n"
                         context += "- Esta tool DEVE ser chamada após todas as perguntas terem sido respondidas.\n"
@@ -136,19 +137,7 @@ async def proxy_task(
 
                         context += "IMPORTANTE: Comece agora com a primeira pergunta.\n"
                     else:
-                        context = "Você é um assistente de voz para pré-entrevistas de emprego. Você é gentil, educado e fala português do Brasil de forma clara e objetiva.\n\n"
-                        context += "MISSÃO: Sua tarefa é fazer uma pré-entrevista com o candidato, fazendo TODAS as perguntas da lista, UMA DE CADA VEZ."
-                        context += "USO DA TOOL `save_response`:\n"
-                        context += "- Esta tool DEVE ser chamada após CADA uma das perguntas ter sido respondida.\n"
-                        context += "- Você deve passar para ela um único argumento: `response_json`.\n"
-                        context += "- O valor deste argumento DEVE ser uma STRING JSON contendo a tag e a resposta que você coletou.\n"
-                        context += "- Exemplo de chamada: save_response(response_json='{\"nome_completo\":\"João da Silva\"}')\n"
-
-                        context += "USO DA TOOL `submit_interview`:\n"
-                        context += "- Esta tool DEVE ser chamada após todas as perguntas terem sido respondidas.\n"
-                        context += "- Exemplo de chamada: submit_interview()\n"
-
-                        context += "IMPORTANTE: Comece agora com a primeira pergunta.\n"
+                        raise Exception("Nenhuma pergunta de entrevista encontrada.")
 
                     gemini_setup = {
                         "setup": {
@@ -163,58 +152,58 @@ async def proxy_task(
                                     },
                                 },
                             },
-                            "system_instruction": {
-                                "parts": [
-                                    {
-                                        "text": context
-                                    }
-                                ]
-                            },
+                            "system_instruction": {"parts": [{"text": context}]},
                             "tools": [
                                 {
                                     "function_declarations": [
                                         {
-                                        "name": "save_response",
-                                        "description": "Salva uma única resposta do candidato. Use após CADA pergunta.",
-                                        "parameters": {
-                                            "type": "object",
-                                            "properties": {
-                                                "tag": {"type": "string", "description": "A tag da pergunta."},
-                                                "response": {"type": "string", "description": "A resposta do candidato."}
+                                            "name": "save_response",
+                                            "description": "Salva uma única resposta do candidato. Use após CADA pergunta.",
+                                            "parameters": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "tag": {
+                                                        "type": "string",
+                                                        "description": "A tag da pergunta.",
+                                                    },
+                                                    "response": {
+                                                        "type": "string",
+                                                        "description": "A resposta do candidato.",
+                                                    },
+                                                },
+                                                "required": ["tag", "response"],
                                             },
-                                            "required": ["tag", "response"]
-                                            }
                                         },
                                         {
                                             "name": "submit_interview",
                                             "description": "Encerra a entrevista, finalizando a conexão do websocket. Use APENAS no final da entrevista.",
-                                        }
+                                        },
                                     ]
                                 }
-                            ]
-                        }
+                            ],
+                        },
                     }
                     await target_websocket.send(json.dumps(gemini_setup))
                     continue
                 # Handler para tool call do Gemini
                 if "toolCall" in data:
-                    function_calls = data["toolCall"]['functionCalls']
+                    function_calls = data["toolCall"]["functionCalls"]
                     for tool_call in function_calls:
                         if tool_call.get("name") == "save_response":
                             args = tool_call.get("args", {})
                             tag = args.get("tag")
                             response = args.get("response")
                             print(f"💾 Recebida resposta via Tool - Tag: {tag}")
-                            
+
                             # 1. Salva a resposta individual no banco de dados (como já fazia)
                             save_response_in_db(
                                 interview_id=interview_state["interview_id"],
                                 tag=tag,
                                 response=response,
                                 candidate_id=interview_state["candidate_id"],
-                                job_vacancy_id=interview_state["job_vacancy_id"]
+                                job_vacancy_id=interview_state["job_vacancy_id"],
                             )
-                        
+
                         elif tool_call.get("name") == "submit_interview":
                             print("🏁 Entrevista finalizada e submetida pelo Gemini.")
                             args = tool_call.get("args", {})
@@ -223,7 +212,9 @@ async def proxy_task(
 
                             # Envia o JSON final de volta para o cliente original
                             if name == "Server->Client":
-                                await source_websocket.close(1000, "Interview completed")
+                                await source_websocket.close(
+                                    1000, "Interview completed"
+                                )
 
                             # Pula o resto do processamento para esta mensagem, pois a entrevista acabou
                             continue
@@ -262,8 +253,11 @@ async def proxy_task(
         if gemini_client and target_websocket:
             await gemini_client.cleanup_connection(target_websocket)
 
+
 async def create_proxy(
-    client_websocket: WebSocketCommonProtocol, gemini_client: GeminiClient, interview_state
+    client_websocket: WebSocketCommonProtocol,
+    gemini_client: GeminiClient,
+    interview_state,
 ) -> None:
     """
     Establishes a WebSocket connection to the server and creates two tasks for
@@ -276,12 +270,20 @@ async def create_proxy(
         # Create bidirectional proxy tasks
         client_to_server = asyncio.create_task(
             proxy_task(
-                client_websocket, server_websocket, "Client->Server", gemini_client, interview_state
+                client_websocket,
+                server_websocket,
+                "Client->Server",
+                gemini_client,
+                interview_state,
             )
         )
         server_to_client = asyncio.create_task(
             proxy_task(
-                server_websocket, client_websocket, "Server->Client", gemini_client, interview_state
+                server_websocket,
+                client_websocket,
+                "Server->Client",
+                gemini_client,
+                interview_state,
             )
         )
 
@@ -333,7 +335,7 @@ async def handle_client(
             "current_question_number": 0,
             "total_questions": 0,
             "expecting_final_response": False,
-            "interview_completed": False
+            "interview_completed": False,
         }
 
         await create_proxy(client_websocket, gemini_client, interview_state)
