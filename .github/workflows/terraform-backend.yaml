@@ -15,42 +15,27 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+        aws-region: ${{ vars.AWS_REGION }}
     
     - name: Terraform Init and Apply for ECR registry for ML image Terraform backend
       run: |
         cd infra/terraform-backend/ecr/s3
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Glue ETL jobs Terraform backend
-      run: |
-        cd infra/terraform-backend/glue/s3
-        terraform init
+        export TF_VAR_component_name="ecr-${{vars.BASE_NAME}}"
         terraform apply -auto-approve
 
     - name: Terraform Init and Apply for IAM role Terraform backend
       run: |
         cd infra/terraform-backend/iam/s3
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Lambda function Terraform backend
-      run: |
-        cd infra/terraform-backend/lambda/s3
-        terraform init
+        export TF_VAR_component_name="iam-${{vars.BASE_NAME}}"
         terraform apply -auto-approve
 
     - name: Terraform Init and Apply for S3 bucket Terraform backend
       run: |
         cd infra/terraform-backend/s3/s3
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Step Functions state machine Terraform backend
-      run: |
-        cd infra/terraform-backend/stepfunctions/s3
-        terraform init
+        export TF_VAR_component_name="s3-${{vars.BASE_NAME}}"
         terraform apply -auto-approve
 
   terraform-backend-dynamodb:
@@ -63,42 +48,27 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+        aws-region: ${{ vars.AWS_REGION }}
 
     - name: Terraform Init and Apply for ECR registry for ML image Terraform backend
       run: |
         cd infra/terraform-backend/ecr/dynamodb
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Glue ETL jobs Terraform backend
-      run: |
-        cd infra/terraform-backend/glue/dynamodb
-        terraform init
+        export TF_VAR_component_name="ecr-${{vars.BASE_NAME}}"
         terraform apply -auto-approve
 
     - name: Terraform Init and Apply for IAM role Terraform backend
       run: |
         cd infra/terraform-backend/iam/dynamodb
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Lambda function Terraform backend
-      run: |
-        cd infra/terraform-backend/lambda/dynamodb
-        terraform init
+        export TF_VAR_component_name="iam-${{vars.BASE_NAME}}"
         terraform apply -auto-approve
 
     - name: Terraform Init and Apply for S3 bucket Terraform backend
       run: |
         cd infra/terraform-backend/s3/dynamodb
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Step Functions state machine Terraform backend
-      run: |
-        cd infra/terraform-backend/stepfunctions/dynamodb
-        terraform init
+        export TF_VAR_component_name="s3-${{vars.BASE_NAME}}"
         terraform apply -auto-approve
   
   terraform-backend-iam:
@@ -112,40 +82,29 @@ jobs:
       with:
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: us-east-1
+        aws-region: ${{ vars.AWS_REGION }}
 
     - name: Terraform Init and Apply for ECR registry for ML image Terraform backend
       run: |
         cd infra/terraform-backend/ecr/iam
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Glue ETL jobs Terraform backend
-      run: |
-        cd infra/terraform-backend/glue/iam
-        terraform init
+        export TF_VAR_component_name="iam-${{vars.BASE_NAME}}"
         terraform apply -auto-approve
 
     - name: Terraform Init and Apply for IAM role Terraform backend
       run: |
         cd infra/terraform-backend/iam/iam
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Lambda function Terraform backend
-      run: |
-        cd infra/terraform-backend/lambda/iam
-        terraform init
+        export TF_VAR_account_id="${{secrets.AWS_ACCOUNT_ID}}"
+        export TF_VAR_component_name="iam-${{vars.BASE_NAME}}"
+        export TF_VAR_region="${{vars.AWS_REGION}}"
         terraform apply -auto-approve
 
     - name: Terraform Init and Apply for S3 bucket Terraform backend
       run: |
         cd infra/terraform-backend/s3/iam
         terraform init
-        terraform apply -auto-approve
-
-    - name: Terraform Init and Apply for Step Functions state machine Terraform backend
-      run: |
-        cd infra/terraform-backend/stepfunctions/iam
-        terraform init
+        export TF_VAR_account_id="${{secrets.AWS_ACCOUNT_ID}}"
+        export TF_VAR_component_name="iam-${{vars.BASE_NAME}}"
+        export TF_VAR_region="${{vars.AWS_REGION}}"
         terraform apply -auto-approve

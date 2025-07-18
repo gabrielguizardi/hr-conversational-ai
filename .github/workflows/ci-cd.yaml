@@ -47,30 +47,9 @@ jobs:
         run: |
             aws s3 rm s3://S3_${{vars.BASE_NAME}}/ --recursive
       
-      - name: Terraform Init and Destroy Step Functions state machine
-        run: |
-          cd infra/stepfunctions
-          terraform init
-          terraform plan
-          terraform destroy -auto-approve
-
       - name: Terraform Init and Destroy ECR repository
         run: |
           cd infra/ecr
-          terraform init
-          terraform plan
-          terraform destroy -auto-approve
-
-      - name: Terraform Init and Destroy Lambda function
-        run: |
-          cd infra/lambda
-          terraform init
-          terraform plan
-          terraform destroy -auto-approve
-      
-      - name: Terraform Init and Destroy Glue jobs
-        run: |
-          cd infra/glue
           terraform init
           terraform plan
           terraform destroy -auto-approve
@@ -89,51 +68,8 @@ jobs:
           terraform plan
           terraform destroy -auto-approve
 
-  lint:
-    needs: set-env
-    if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip && pip install -r requirements.txt
-
-      - name: Run Flake8
-        run: |
-          flake8 ./src --ignore=E501
-
-  test:
-    needs: [lint, set-env]
-    if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Setup Python
-        uses: actions/setup-python@v2
-        with:
-          python-version: '3.8'
-
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip && pip install -r requirements.txt
-
-      - name: Run tests
-        run: |
-          export PYTHONPATH=.
-          pytest ./src/tests
-
   iam:
-    needs: [test, set-env]
+    needs: [set-env]
     if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
     runs-on: ubuntu-latest
     steps:
@@ -150,13 +86,16 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{vars.AWS_REGION}}
 
       - name: Terraform Init and Apply
         run: |
           cd infra/iam
           terraform init
           terraform plan
+          export TF_VAR_account_id="${{secrets.AWS_ACCOUNT_ID}}"
+          export TF_VAR_component_name="ecr-${{vars.BASE_NAME}}"
+          export TF_VAR_region="${{vars.AWS_REGION}}"
           terraform apply -auto-approve
 
   s3:
@@ -177,45 +116,15 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{vars.AWS_REGION}}
 
       - name: Terraform Init and Apply
         run: |
           cd infra/s3
           terraform init
           terraform plan
+          export TF_VAR_bucket_name="s3-${{vars.BASE_NAME}}"
           terraform apply -auto-approve
-
-  glue:
-    needs: [s3, set-env]
-    if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: '1.0.0'
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Terraform Init and Apply
-        run: |
-          cd infra/glue
-          terraform init
-          terraform plan
-          terraform apply -auto-approve
-
-      - name: Upload Python scripts to S3
-        run: |
-            aws s3 cp src/etl/ s3://s3-bucket-ipea-eia366-pbrent366/scripts/ --recursive --exclude "*" --include "*.py"
 
   ecr:
     needs: [iam, set-env]
@@ -235,14 +144,14 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{vars.AWS_REGION}}
 
       - name: Terraform Init and Apply
         run: |
           cd infra/ecr
           terraform init
           terraform plan
-          terraform apply -auto-approve
+          terraform apply -auto-approve -var="component_name=ecr-${{vars.BASE_NAME}}"
       
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1
@@ -252,68 +161,10 @@ jobs:
   
       - name: Build Docker image locally
         run: |
-            docker build -t 413467296690.dkr.ecr.us-east-1.amazonaws.com/ecr-ipea-eia366-pbrent366:latest -f ./Dockerfile .
+            docker build -t ${{secrets.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest -f ./server/Dockerfile .
   
       - name: Push Docker image to Amazon ECR
         run: |
-            docker push 413467296690.dkr.ecr.us-east-1.amazonaws.com/ecr-ipea-eia366-pbrent366:latest
+            docker push ${{secrets.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest
 
-  lambda:
-    needs: [iam, set-env]
-    if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-    
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: '1.0.0'
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Zip Lambda function
-        run: |
-          cd src/lambda
-          zip -r ../../infra/lambda/lambda_function.zip lambda_function.py
-        working-directory: .
-
-      - name: Terraform Init and Apply
-        run: |
-          cd infra/lambda
-          terraform init
-          terraform plan
-          terraform apply -auto-approve
-
-  stepfunctions:
-    needs: [iam, s3, glue, ecr, lambda, set-env]
-    if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-    
-      - name: Set up Terraform
-        uses: hashicorp/setup-terraform@v1
-        with:
-          terraform_version: '1.0.0'
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
-
-      - name: Terraform Init and Apply
-        run: |
-          cd infra/stepfunctions
-          terraform init
-          terraform plan
-          terraform apply -auto-approve
+  

@@ -1,13 +1,13 @@
 variable "account_id" {
   description = "AWS account ID"
   type        = string
-  default     = "413467296690"
+  default     = "000"
 }
 
 variable "component_name" {
   description = "Component name"
   type        = string
-  default     = "ecr-ipea-eia366-pbrent366"
+  default     = "ecr-"
 }
 
 variable "region" {
