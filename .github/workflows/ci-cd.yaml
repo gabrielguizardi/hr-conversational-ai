@@ -7,15 +7,6 @@ on:
 #     branches: 
 #       - main
 
-env:
-  AWS_REGION: us-east-1
-  BASE_NAME: hr-conversational-ai
-  ECR_REPOSITORY: ecr_${BASE_NAME}
-  ECS_SERVICE: ecs_srv_${BASE_NAME}
-  ECS_CLUSTER: ecs_cluster_${BASE_NAME}
-  CONTAINER_NAME: container_${BASE_NAME}
-  S3_BUCKET: s3_${BASE_NAME}
-
 jobs:
 
   set-env:
@@ -50,11 +41,11 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-1
+          aws-region: ${{env.AWS_REGION}}
 
       - name: Removing files from S3 bucket in case of destroy command
         run: |
-            aws s3 rm s3://${S3_BUCKET}/ --recursive
+            aws s3 rm s3://S3_${{env.BASE_NAME}}/ --recursive
       
       - name: Terraform Init and Destroy Step Functions state machine
         run: |
