@@ -1,9 +1,7 @@
 name: Setup Terraform Backend
 
-on: 
-  push:
-    branches:
-      - terraform-backend
+on:
+  workflow_dispatch:
 
 jobs:
 
