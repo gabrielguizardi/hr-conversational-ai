@@ -113,29 +113,36 @@ async def proxy_task(
                     # --- CONTEXTO (PROMPT) MODIFICADO ---
                     if interview_questions:
                         context = "Você é um assistente de voz para pré-entrevistas de emprego. Você é gentil, educado e fala português do Brasil de forma clara e objetiva.\n\n"
-                        context += "MISSÃO: Sua tarefa é fazer uma pré-entrevista com o candidato, fazendo TODAS as perguntas da lista, UMA DE CADA VEZ.\n\n"
-                        context += "PERGUNTAS OBRIGATÓRIAS (faça uma por vez na ordem exata):\n"
+                        context += "MISSÃO: Sua tarefa é fazer uma pré-entrevista com o candidato, fazendo TODAS as perguntas da lista abaixo, UMA DE CADA VEZ, seguindo as regras de ação rigorosamente.\n\n"
+                        context += "PERGUNTAS OBRIGATÓRIAS (na ordem exata):\n"
+
+                        # Este loop onde você insere as perguntas continua igual
                         for i, question in enumerate(interview_questions, 1):
                             tag = question_tags.get(question, f"pergunta_{i}")
                             context += f"{i}. {question} (tag: {tag})\n"
 
-                        context += "\nPROTOCOLO DE ENTREVISTA:\n"
-                        context += "1. Comece fazendo uma BREVE introdução e siga com a primeira pergunta da lista. Não espere o usuário falar primeiro.\n"
-                        context += "2. Após o candidato responder, SINTETIZE a resposta e use a tool `save_response` com a tag da pergunta e a resposta dele.\n"
-                        context += "3. Faça a PRÓXIMA pergunta da lista.\n"
-                        context += "5. Quando tiver feito TODAS as perguntas e salvo TODAS as respostas, agradeça ao candidato e OBRIGATORIAMENTE use a tool `submit_interview` para terminar a conversa.\n\n"
+                        context += "\nFERRAMENTAS DISPONÍVEIS:\n"
+                        context += "- save_response(tag: str, response: str): Use esta ferramenta para salvar o resumo da resposta de um candidato. O argumento 'tag' deve ser o identificador da pergunta que foi respondida, e 'response' deve ser a resposta do usuário.\n"
 
-                        context += "USO DA TOOL `save_response`:\n"
-                        context += "- Esta tool DEVE ser chamada após CADA uma das perguntas ter sido respondida.\n"
-                        context += "- Você deve passar para ela um único argumento: `response_json`.\n"
-                        context += "- O valor deste argumento DEVE ser uma STRING JSON contendo a tag e a resposta que você coletou.\n"
-                        context += '- Exemplo de chamada: save_response(response_json=\'{"nome_completo":"João da Silva"}\')\n'
+                        # A seção de regras foi completamente reescrita para ser mais diretiva
+                        context += """
+                        REGRAS DE AÇÃO (TURNO A TURNO):
+                        Você deve seguir estas regras a cada interação.
 
-                        context += "USO DA TOOL `submit_interview`:\n"
-                        context += "- Esta tool DEVE ser chamada após todas as perguntas terem sido respondidas.\n"
-                        context += "- Exemplo de chamada: submit_interview()\n"
+                        1.  **PARA INICIAR A CONVERSA:**
+                            - Se a conversa está apenas começando, faça uma BREVE saudação (ex: "Olá! Sou seu assistente para esta pré-entrevista. Vamos começar?") e então faça a **Pergunta 1** da lista.
 
-                        context += "IMPORTANTE: Comece agora com a primeira pergunta.\n"
+                        2.  **AO RECEBER UMA RESPOSTA DO CANDIDATO:**
+                            - Sua ÚNICA ação neste momento é sintetizar a resposta que você ouviu e chamar a ferramenta `save_response(tag, response)`.
+                            - **IMPORTANTE:** Não diga "Obrigado", "Certo", nem faça a próxima pergunta ainda. Apenas e somente chame a ferramenta.
+
+                        3.  **APÓS CHAMAR A FERRAMENTA `save_response`:**
+                            - Sua ÚNICA ação é fazer a **PRÓXIMA pergunta** da lista.
+                            - Continue este ciclo (Regra 2 -> Regra 3) para todas as perguntas.
+
+                        4.  **PARA FINALIZAR A CONVERSA:**
+                            - Após você chamar `save_response` para a **ÚLTIMA** pergunta da lista, em vez de procurar uma nova pergunta, sua única ação é agradecer ao candidato e encerrar a conversa de forma profissional.
+                        """
                     else:
                         raise Exception("Nenhuma pergunta de entrevista encontrada.")
 
@@ -158,7 +165,7 @@ async def proxy_task(
                                     "function_declarations": [
                                         {
                                             "name": "save_response",
-                                            "description": "Salva uma única resposta do candidato. Use após CADA pergunta.",
+                                            "description": "Salva a resposta do candidato.",
                                             "parameters": {
                                                 "type": "object",
                                                 "properties": {
@@ -185,24 +192,54 @@ async def proxy_task(
                     }
                     await target_websocket.send(json.dumps(gemini_setup))
                     continue
-                # Handler para tool call do Gemini
-                if "toolCall" in data:
+                # Handler para tool call do Gemini (CORRIGIDO)
+                if "toolCall" in data and name == "Server->Client": # Mensagem vinda do Gemini
                     function_calls = data["toolCall"]["functionCalls"]
-                    for tool_call in function_calls:
+                    
+                    # Assumindo uma chamada de ferramenta por vez, como no seu fluxo
+                    if function_calls:
+                        tool_call = function_calls[0]
+
                         if tool_call.get("name") == "save_response":
                             args = tool_call.get("args", {})
                             tag = args.get("tag")
                             response = args.get("response")
                             print(f"💾 Recebida resposta via Tool - Tag: {tag}")
 
-                            # 1. Salva a resposta individual no banco de dados (como já fazia)
+                            # 1. Salva a resposta no banco de dados (seu código original)
                             save_response_in_db(
-                                interview_id=interview_state["interview_id"],
+                                interview_id=interview_state.get("interview_id"),
                                 tag=tag,
                                 response=response,
-                                candidate_id=interview_state["candidate_id"],
-                                job_vacancy_id=interview_state["job_vacancy_id"],
+                                candidate_id=interview_state.get("candidate_id"),
+                                job_vacancy_id=interview_state.get("job_vacancy_id"),
                             )
+
+                            # Construa o payload com a estrutura exata que a API espera.
+                            # O valor de 'tool_response' é um objeto contendo o 'id' e o 'output'.
+                            tool_response_payload = {
+                                "tool_response": {
+                                    "function_responses": 
+                                    {
+                                        "id": tool_call.get("id"),
+                                        "name": tool_call.get("name"),
+                                        "response": {
+                                            "result": "Resposta salva com sucesso."
+                                        }
+                                    }
+                                }
+                            }
+
+                            json_string_to_send = json.dumps(tool_response_payload)
+                            if hasattr(source_websocket, "send_text"):
+                                await source_websocket.send_text(json_string_to_send)
+                            else:
+                                await source_websocket.send(json_string_to_send)
+
+                            # 5. Continue para a próxima iteração do loop
+                            #    Isso impede que a mensagem original seja encaminhada ao cliente final.
+                            continue
+                            # --- FIM DA CORREÇÃO ---
 
                         elif tool_call.get("name") == "submit_interview":
                             print("🏁 Entrevista finalizada e submetida pelo Gemini.")
@@ -211,10 +248,7 @@ async def proxy_task(
                             interview_state["interview_completed"] = True
 
                             # Envia o JSON final de volta para o cliente original
-                            if name == "Server->Client":
-                                await source_websocket.close(
-                                    1000, "Interview completed"
-                                )
+                            await gemini_client.cleanup_connection(target_websocket)
 
                             # Pula o resto do processamento para esta mensagem, pois a entrevista acabou
                             continue
