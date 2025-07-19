@@ -100,7 +100,6 @@ jobs:
       - name: Terraform Init and Apply
         run: |
           cd infra/iam
-          terraform init
           
           echo 'backend "s3" {' > backend.tf
           echo '    region         = "${{vars.AWS_REGION}}"' >> backend.tf
@@ -111,7 +110,9 @@ jobs:
           echo '    encrypt        = true
           echo '  }
           echo '}
-
+          
+          terraform init
+          
           export TF_VAR_region="${{vars.AWS_REGION}}"
           terraform plan
           terraform apply -auto-approve
