@@ -144,6 +144,7 @@ jobs:
         export TF_VAR_account_id="${{secrets.AWS_ID}}"
         export TF_VAR_component_name="ecr-${{vars.BASE_NAME}}"
         export TF_VAR_region="${{vars.AWS_REGION}}"
+        terraform plan -destroy
         terraform destroy -auto-approve
 
     - name: Terraform Init and Destroy for IAM role Terraform backend
@@ -153,6 +154,7 @@ jobs:
         export TF_VAR_account_id="${{secrets.AWS_ID}}"
         export TF_VAR_component_name="iam-${{vars.BASE_NAME}}"
         export TF_VAR_region="${{vars.AWS_REGION}}"
+        terraform plan -destroy
         terraform destroy -auto-approve
 
     - name: Terraform Init and Destroy for S3 bucket Terraform backend
@@ -162,6 +164,7 @@ jobs:
         export TF_VAR_account_id="${{secrets.AWS_ID}}"
         export TF_VAR_component_name="s3-${{vars.BASE_NAME}}"
         export TF_VAR_region="${{vars.AWS_REGION}}"
+        terraform plan -destroy
         terraform destroy -auto-approve
 
     - name: Terraform Init and Destroy for ECS Terraform backend
@@ -171,6 +174,7 @@ jobs:
         export TF_VAR_account_id="${{secrets.AWS_ID}}"
         export TF_VAR_component_name="ecs-${{vars.BASE_NAME}}"
         export TF_VAR_region="${{vars.AWS_REGION}}"
+        terraform plan -destroy
         terraform destroy -auto-approve
 
     - name: Terraform Init and Destroy for VPC Terraform backend
@@ -180,4 +184,5 @@ jobs:
         export TF_VAR_account_id="${{secrets.AWS_ID}}"
         export TF_VAR_component_name="vpc-${{vars.BASE_NAME}}"
         export TF_VAR_region="${{vars.AWS_REGION}}"
+        terraform plan -destroy
         terraform destroy -auto-approve
