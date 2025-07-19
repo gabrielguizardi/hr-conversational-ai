@@ -100,8 +100,8 @@ jobs:
       - name: Terraform Init and Apply
         run: |
           cd infra/iam
-
-          echo 'backend "s3" {' > backend.tf
+          echo 'terraform {' > backend.tf
+          echo '  backend "s3" {' >> backend.tf
           echo '    region         = "${{vars.AWS_REGION}}"' >> backend.tf
           echo '    role_arn       = "arn:aws:iam::${{secrets.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"' >> backend.tf
           echo '    bucket         = "iam-${{vars.BASE_NAME}}-frontend"' >> backend.tf
