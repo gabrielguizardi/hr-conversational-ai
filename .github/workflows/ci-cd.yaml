@@ -62,7 +62,7 @@ jobs:
           terraform init
           export TF_VAR_bucket_name="s3-${{vars.BASE_NAME}}-frontend"
           export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
-          export TF_VAR_terraform_backend_role_arn="arn:aws:iam::${{secrets.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"
+          export TF_VAR_terraform_backend_role_arn="arn:aws:iam::${{vars.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"
           export TF_VAR_terraform_backend_bucket="terraform-backend-s3-${{vars.BASE_NAME}}"
           export TF_VAR_terraform_backend_key="terraform.tfstate"
           export TF_VAR_terraform_backend_dynamodb_table="terraform-backend-lock-table-s3-${{vars.BASE_NAME}}"
@@ -103,7 +103,7 @@ jobs:
           echo 'terraform {' > backend.tf
           echo '  backend "s3" {' >> backend.tf
           echo '    region         = "${{vars.AWS_REGION}}"' >> backend.tf
-          echo '    role_arn       = "arn:aws:iam::${{secrets.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"' >> backend.tf
+          echo '    role_arn       = "arn:aws:iam::${{vars.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"' >> backend.tf
           echo '    bucket         = "iam-${{vars.BASE_NAME}}-frontend"' >> backend.tf
           echo '    key            = "terraform.tfstate"' >> backend.tf
           echo '    dynamodb_table = "terraform-backend-lock-table-s3-${{vars.BASE_NAME}}"' >> backend.tf
@@ -183,10 +183,10 @@ jobs:
   
       - name: Build Docker image locally
         run: |
-            docker build -t ${{secrets.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest -f ./server/Dockerfile .
+            docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest -f ./server/Dockerfile .
   
       - name: Push Docker image to Amazon ECR
         run: |
-            docker push ${{secrets.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest
+            docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest
 
   
