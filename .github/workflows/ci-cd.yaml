@@ -45,13 +45,15 @@ jobs:
 
       - name: Removing files from S3 bucket in case of destroy command
         run: |
-            aws s3 rm s3://S3_${{vars.BASE_NAME}}/ --recursive
+            aws s3 rm s3://s3_${{vars.BASE_NAME}}/ --recursive
       
       - name: Terraform Init and Destroy ECR repository
         run: |
           cd infra/ecr
           terraform init
           terraform plan
+          export TF_VAR_ecr_repo_name="ecr-${{vars.BASE_NAME}}-backend"
+          export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
           terraform destroy -auto-approve
 
       - name: Terraform Init and Destroy S3 bucket
@@ -59,6 +61,12 @@ jobs:
           cd infra/s3
           terraform init
           terraform plan
+          export TF_VAR_bucket_name="s3-${{vars.BASE_NAME}}-frontend"
+          export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
+          export TF_VAR_terraform_backend_role_arn="arn:aws:iam::${{secrets.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"
+          export TF_VAR_terraform_backend_bucket="terraform-backend-s3-${{vars.BASE_NAME}}"
+          export TF_VAR_terraform_backend_key="terraform.tfstate"
+          export TF_VAR_terraform_backend_dynamodb_table="terraform-backend-lock-table-s3-${{vars.BASE_NAME}}"
           terraform destroy -auto-approve
 
       - name: Terraform Init and Destroy IAM role
@@ -66,6 +74,7 @@ jobs:
           cd infra/iam
           terraform init
           terraform plan
+          export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
           terraform destroy -auto-approve
 
   iam:
@@ -124,6 +133,7 @@ jobs:
           terraform init
           terraform plan
           export TF_VAR_bucket_name="s3-${{vars.BASE_NAME}}"
+          export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
           terraform apply -auto-approve
 
   ecr:
@@ -151,7 +161,9 @@ jobs:
           cd infra/ecr
           terraform init
           terraform plan
-          terraform apply -auto-approve -var="component_name=ecr-${{vars.BASE_NAME}}"
+          export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
+          export TF_VAR_component_name="ecr-${{vars.BASE_NAME}}"
+          terraform apply -auto-approve
       
       - name: Login to Amazon ECR
         uses: aws-actions/amazon-ecr-login@v1

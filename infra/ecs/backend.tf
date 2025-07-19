@@ -1,10 +1,10 @@
 terraform {
   backend "s3" {
-    region         = "us-east-1"
-    role_arn       = "arn:aws:iam::413467296690:role/s3-ipea-eia366-pbrent366-terraform-backend-role"
-    bucket         = "terraform-backend-s3-ipea-eia366-pbrent366"
-    key            = "terraform.tfstate"
-    dynamodb_table = "terraform-backend-lock-table-s3-ipea-eia366-pbrent366"
+    region         = var.terraform_backend_region
+    role_arn       = var.terraform_backend_role_arn
+    bucket         = var.terraform_backend_bucket
+    key            = var.terraform_backend_key
+    dynamodb_table = var.terraform_backend_dynamodb_table
     encrypt        = true
   }
 }
