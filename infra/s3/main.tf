@@ -34,7 +34,7 @@ resource "aws_s3_bucket_policy" "frontend_policy" {
 resource "null_resource" "frontend_build_deploy" {
   provisioner "local-exec" {
     command = <<EOT
-      cd ./web
+      cd ../../web/
       npm ci
       npm run build
       aws s3 sync ./dist s3://${var.bucket_name} --acl public-read --delete
