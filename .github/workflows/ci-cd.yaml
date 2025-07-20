@@ -108,16 +108,16 @@ jobs:
           export bucket_name="terraform-backend-${component_name}"
           export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
 
-          echo 'terraform {' > backend.tf
-          echo '  backend "s3" {' >> backend.tf
-          echo '    region         = "${{vars.AWS_REGION}}"' >> backend.tf
-          echo '    role_arn       = "${role_name}"' >> backend.tf
-          echo '    bucket         = "${bucket_name}"' >> backend.tf
-          echo '    key            = "terraform.tfstate"' >> backend.tf
-          echo '    dynamodb_table = "terraform-backend-lock-table-s3-${{vars.BASE_NAME}}"' >> backend.tf
-          echo '    encrypt        = true' >> backend.tf
-          echo '  }' >> backend.tf
-          echo '}' >> backend.tf
+          echo "terraform {" > backend.tf
+          echo "  backend \"s3\" {" >> backend.tf
+          echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
+          echo "    role_arn       = \"${role_name}\"" >> backend.tf
+          echo "    bucket         = \"${bucket_name}\"" >> backend.tf
+          echo "    key            = \"terraform.tfstate\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table}\"" >> backend.tf
+          echo "    encrypt        = true" >> backend.tf
+          echo "  }" >> backend.tf
+          echo "}" >> backend.tf
 
           cat backend.tf
 
