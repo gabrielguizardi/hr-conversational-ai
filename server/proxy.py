@@ -123,6 +123,7 @@ async def proxy_task(
 
                         context += "\nFERRAMENTAS DISPONÍVEIS:\n"
                         context += "- save_response(tag: str, response: str): Use esta ferramenta para salvar o resumo da resposta de um candidato. O argumento 'tag' deve ser o identificador da pergunta que foi respondida, e 'response' deve ser a resposta do usuário.\n"
+                        context += "- end_interview(): Use esta ferramenta para encerrar a conexão do websocket.\n"
 
                         # A seção de regras foi completamente reescrita para ser mais diretiva
                         context += """
@@ -141,7 +142,10 @@ async def proxy_task(
                             - Continue este ciclo (Regra 2 -> Regra 3) para todas as perguntas.
 
                         4.  **PARA FINALIZAR A CONVERSA:**
-                            - Após você chamar `save_response` para a **ÚLTIMA** pergunta da lista, em vez de procurar uma nova pergunta, sua única ação é agradecer ao candidato e encerrar a conversa de forma profissional.
+                            - Após você chamar `save_response` para a **ÚLTIMA** pergunta da lista, em vez de procurar uma nova pergunta, suas ações são agradecer ao candidato, encerrar a conversa de forma profissional.
+
+                        5.  **PARA ENCERRAR A CONEXÂO:**
+                            - Chame a tool `end_interview()` para encerrar a conexão do websocket.
                         """
                     else:
                         raise Exception("Nenhuma pergunta de entrevista encontrada.")
@@ -182,8 +186,8 @@ async def proxy_task(
                                             },
                                         },
                                         {
-                                            "name": "submit_interview",
-                                            "description": "Encerra a entrevista, finalizando a conexão do websocket. Use APENAS no final da entrevista.",
+                                            "name": "end_interview",
+                                            "description": "Encerra a entrevista, finalizando a conexão do websocket.",
                                         },
                                     ]
                                 }
@@ -241,8 +245,8 @@ async def proxy_task(
                             continue
                             # --- FIM DA CORREÇÃO ---
 
-                        elif tool_call.get("name") == "submit_interview":
-                            print("🏁 Entrevista finalizada e submetida pelo Gemini.")
+                        elif tool_call.get("name") == "end_interview":
+                            print("🏁 Entrevista finalizada.")
                             args = tool_call.get("args", {})
 
                             interview_state["interview_completed"] = True
