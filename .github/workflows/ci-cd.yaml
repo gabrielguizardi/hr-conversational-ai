@@ -111,6 +111,7 @@ jobs:
           echo '  }' >> backend.tf
           echo '}' >> backend.tf
           
+          TF_LOG="DEBUG"
           terraform init
           
           export TF_VAR_region="${{vars.AWS_REGION}}"
