@@ -114,7 +114,7 @@ jobs:
           echo "    role_arn       = \"${role_name}\"" >> backend.tf
           echo "    bucket         = \"${bucket_name}\"" >> backend.tf
           echo "    key            = \"terraform.tfstate\"" >> backend.tf
-          echo "    dynamodb_table = \"${dynamodb_table}\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
           echo "    encrypt        = true" >> backend.tf
           echo "  }" >> backend.tf
           echo "}" >> backend.tf
