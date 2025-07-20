@@ -12,6 +12,10 @@ variable "region" {
   default     = "us-east-1"
 }
 
+variable "vpc_name" {
+  default = "hr-conversational-ai-backend"
+}
+
 variable "ecs_task_exec_role" {
   description = "Role para execução de tarefas do ECS"
   type        = string

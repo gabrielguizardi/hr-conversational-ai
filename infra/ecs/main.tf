@@ -30,6 +30,28 @@ resource "aws_ecs_task_definition" "backend" {
   ])
 }
 
+data "aws_subnet" "vpc-public-a" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.vpc_name}-public-a"]
+  }
+}
+
+data "aws_subnet" "vpc-public-b" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.vpc_name}-public-b"]
+  }
+}
+
+data "aws_security_group" "backend" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.vpc_name}-backend-sg"]
+  }
+}
+
+
 resource "aws_ecs_service" "backend" {
   name            = "backend-service"
   cluster         = aws_ecs_cluster.main.id
@@ -37,7 +59,7 @@ resource "aws_ecs_service" "backend" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets          = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+    subnets          = [aws_subnet.vpc-public_a.id, aws_subnet.vpc-public_a.id]
     assign_public_ip = true
     security_groups  = [aws_security_group.backend.id]
   }
