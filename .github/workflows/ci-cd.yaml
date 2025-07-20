@@ -452,6 +452,8 @@ jobs:
 
           export TF_LOG="DEBUG"
 
+          aws iam create-service-linked-role --aws-service-name ecs.amazonaws.com
+
           terraform init
           terraform plan
           terraform apply -auto-approve
