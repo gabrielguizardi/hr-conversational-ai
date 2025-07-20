@@ -7,7 +7,3 @@ variable "region" {
   type        = string
   default     = "us-east-1"
 }
-
-variable "gemini_api_key" {
-  description = "Chave da API Gemini"
-}
