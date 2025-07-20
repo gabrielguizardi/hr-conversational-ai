@@ -3,6 +3,7 @@ resource "aws_iam_role" "role" {
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
+    region = var.region
     Statement = [
       {
         Action = "sts:AssumeRole",
