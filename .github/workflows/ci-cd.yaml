@@ -281,6 +281,7 @@ jobs:
 
           export TF_VAR_region="${{vars.AWS_REGION}}"
           export TF_VAR_bucket_name="${component_name}-frontend"
+          
 
           terraform init
           terraform plan
@@ -330,6 +331,8 @@ jobs:
 
           export TF_VAR_ecr_repo_name="${component_name}-backend"
           export TF_VAR_region="${{vars.AWS_REGION}}"
+
+          export TF_LOG="DEBUG"
 
           terraform init
           terraform plan
