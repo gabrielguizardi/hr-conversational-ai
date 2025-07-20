@@ -30,6 +30,13 @@ resource "aws_ecs_task_definition" "backend" {
   ])
 }
 
+data "aws_vpc" "main" {
+  filter {
+    name   = "tag:Name"
+    values = ["${var.vpc_name}"]
+  }
+}
+
 data "aws_subnet" "vpc-public-a" {
   filter {
     name   = "tag:Name"
@@ -49,6 +56,7 @@ data "aws_security_group" "backend" {
     name   = "tag:Name"
     values = ["${var.vpc_name}-backend-sg"]
   }
+  vpc_id = data.aws_vpc.main.id
 }
 
 
