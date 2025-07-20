@@ -50,8 +50,27 @@ jobs:
       - name: Terraform Init and Destroy ECR repository
         run: |
           cd infra/ecr
-          export TF_VAR_ecr_repo_name="ecr-${{vars.BASE_NAME}}-backend"
-          export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
+
+          export resource_name="ecr"
+
+          export component_name="${resource_name}-${{vars.BASE_NAME}}"
+          export role_name="arn:aws:iam::${{vars.AWS_ID}}:role/${component_name}-terraform-backend-role"
+          export bucket_name="terraform-backend-${component_name}"
+          export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
+
+          echo "terraform {" > backend.tf
+          echo "  backend \"s3\" {" >> backend.tf
+          echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
+          echo "    role_arn       = \"${role_name}\"" >> backend.tf
+          echo "    bucket         = \"${bucket_name}\"" >> backend.tf
+          echo "    key            = \"terraform.tfstate\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
+          echo "    encrypt        = true" >> backend.tf
+          echo "  }" >> backend.tf
+          echo "}" >> backend.tf
+
+          export TF_VAR_ecr_repo_name="${component_name}-backend"
+          export TF_VAR_region="${{vars.AWS_REGION}}"
           terraform init
           terraform plan
           terraform destroy -auto-approve
@@ -59,6 +78,7 @@ jobs:
       - name: Terraform Init and Destroy S3 bucket
         run: |
           cd infra/s3
+
           export resource_name="s3"
 
           export component_name="${resource_name}-${{vars.BASE_NAME}}"
@@ -77,6 +97,9 @@ jobs:
           echo "  }" >> backend.tf
           echo "}" >> backend.tf
 
+          export TF_VAR_region="${{vars.AWS_REGION}}"
+          export TF_VAR_bucket_name="${bucket_name}"
+
           terraform init
           terraform plan
           terraform destroy -auto-approve
@@ -84,10 +107,86 @@ jobs:
       - name: Terraform Init and Destroy IAM role
         run: |
           cd infra/iam
+
+          export resource_name="iam"
+
+          export component_name="${resource_name}-${{vars.BASE_NAME}}"
+          export role_name="arn:aws:iam::${{vars.AWS_ID}}:role/${component_name}-terraform-backend-role"
+          export bucket_name="terraform-backend-${component_name}"
+          export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
+
+          echo "terraform {" > backend.tf
+          echo "  backend \"s3\" {" >> backend.tf
+          echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
+          echo "    role_arn       = \"${role_name}\"" >> backend.tf
+          echo "    bucket         = \"${bucket_name}\"" >> backend.tf
+          echo "    key            = \"terraform.tfstate\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
+          echo "    encrypt        = true" >> backend.tf
+          echo "  }" >> backend.tf
+          echo "}" >> backend.tf
+
           export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
           terraform init
           terraform plan
           terraform destroy -auto-approve
+
+      - name: Terraform Init and Destroy ECS repository
+        run: |
+          cd infra/ecs
+
+          export resource_name="ecs"
+
+          export component_name="${resource_name}-${{vars.BASE_NAME}}"
+          export role_name="arn:aws:iam::${{vars.AWS_ID}}:role/${component_name}-terraform-backend-role"
+          export bucket_name="terraform-backend-${component_name}"
+          export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
+
+          echo "terraform {" > backend.tf
+          echo "  backend \"s3\" {" >> backend.tf
+          echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
+          echo "    role_arn       = \"${role_name}\"" >> backend.tf
+          echo "    bucket         = \"${bucket_name}\"" >> backend.tf
+          echo "    key            = \"terraform.tfstate\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
+          echo "    encrypt        = true" >> backend.tf
+          echo "  }" >> backend.tf
+          echo "}" >> backend.tf
+
+          export TF_VAR_ecs_cluter_name="${component_name}-backend"
+          export TF_VAR_region="${{vars.AWS_REGION}}"
+          terraform init
+          terraform plan
+          terraform destroy -auto-approve
+
+      - name: Terraform Init and Destroy VPC repository
+        run: |
+          cd infra/vpc
+
+          export resource_name="vpc"
+
+          export component_name="${resource_name}-${{vars.BASE_NAME}}"
+          export role_name="arn:aws:iam::${{vars.AWS_ID}}:role/${component_name}-terraform-backend-role"
+          export bucket_name="terraform-backend-${component_name}"
+          export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
+
+          echo "terraform {" > backend.tf
+          echo "  backend \"s3\" {" >> backend.tf
+          echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
+          echo "    role_arn       = \"${role_name}\"" >> backend.tf
+          echo "    bucket         = \"${bucket_name}\"" >> backend.tf
+          echo "    key            = \"terraform.tfstate\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
+          echo "    encrypt        = true" >> backend.tf
+          echo "  }" >> backend.tf
+          echo "}" >> backend.tf
+
+          export TF_VAR_vpc_name="${component_name}-vpc"
+          export TF_VAR_region="${{vars.AWS_REGION}}"
+          terraform init
+          terraform plan
+          terraform destroy -auto-approve
+
 
   iam:
     needs: [set-env]

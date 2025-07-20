@@ -5,7 +5,7 @@ resource "aws_vpc" "main" {
   enable_dns_hostnames = true
 
   tags = {
-    Name = "hr-conversational-ai-vpc"
+    Name = var.vpc_name
   }
 }
 
@@ -13,22 +13,22 @@ resource "aws_vpc" "main" {
 resource "aws_subnet" "public_a" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = "${var.aws_region}a"
+  availability_zone       = "${var.region}"
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "hr-conversational-ai-public-a"
+    Name = "${var.vpc_name}-public-a"
   }
 }
 
 resource "aws_subnet" "public_b" {
   vpc_id                  = aws_vpc.main.id
   cidr_block              = "10.0.2.0/24"
-  availability_zone       = "${var.aws_region}b"
+  availability_zone       = "${var.region}"
   map_public_ip_on_launch = true
 
   tags = {
-    Name = "hr-conversational-ai-public-b"
+    Name = "${var.vpc_name}-public-b"
   }
 }
 
@@ -37,7 +37,7 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    Name = "hr-conversational-ai-igw"
+    Name = "${var.vpc_name}-igw"
   }
 }
 
@@ -51,7 +51,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    Name = "hr-conversational-ai-public-rt"
+    Name = "${var.vpc_name}-public-rt"
   }
 }
 
@@ -66,7 +66,7 @@ resource "aws_route_table_association" "public_b" {
   route_table_id = aws_route_table.public.id
 }
 resource "aws_security_group" "backend" {
-  name        = "backend-sg"
+  name        = "${var.vpc_name}-backend-sg"
   description = "Allow inbound traffic to backend"
   vpc_id      = aws_vpc.main.id
 
@@ -84,5 +84,3 @@ resource "aws_security_group" "backend" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
-
