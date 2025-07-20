@@ -12,6 +12,11 @@ variable "region" {
   default     = "us-east-1"
 }
 
+variable "ecs_task_exec_role" {
+  description = "Role para execução de tarefas do ECS"
+  type        = string
+}
+
 variable "gemini_api_key" {
   description = "Chave da API Gemini"
 }
