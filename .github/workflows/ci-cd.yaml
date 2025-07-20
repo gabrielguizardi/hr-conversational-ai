@@ -59,12 +59,24 @@ jobs:
       - name: Terraform Init and Destroy S3 bucket
         run: |
           cd infra/s3
-          export TF_VAR_bucket_name="s3-${{vars.BASE_NAME}}-frontend"
-          export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
-          export TF_VAR_terraform_backend_role_arn="arn:aws:iam::${{vars.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"
-          export TF_VAR_terraform_backend_bucket="terraform-backend-s3-${{vars.BASE_NAME}}"
-          export TF_VAR_terraform_backend_key="terraform.tfstate"
-          export TF_VAR_terraform_backend_dynamodb_table="terraform-backend-lock-table-s3-${{vars.BASE_NAME}}"
+          export resource_name="s3"
+
+          export component_name="${resource_name}-${{vars.BASE_NAME}}"
+          export role_name="arn:aws:iam::${{vars.AWS_ID}}:role/${component_name}-terraform-backend-role"
+          export bucket_name="terraform-backend-${component_name}"
+          export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
+
+          echo "terraform {" > backend.tf
+          echo "  backend \"s3\" {" >> backend.tf
+          echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
+          echo "    role_arn       = \"${role_name}\"" >> backend.tf
+          echo "    bucket         = \"${bucket_name}\"" >> backend.tf
+          echo "    key            = \"terraform.tfstate\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
+          echo "    encrypt        = true" >> backend.tf
+          echo "  }" >> backend.tf
+          echo "}" >> backend.tf
+
           terraform init
           terraform plan
           terraform destroy -auto-approve
@@ -119,8 +131,7 @@ jobs:
           echo "  }" >> backend.tf
           echo "}" >> backend.tf
 
-          cat backend.tf
-
+          
           export TF_VAR_region="${{vars.AWS_REGION}}"
           export TF_LOG="DEBUG"
           terraform init
