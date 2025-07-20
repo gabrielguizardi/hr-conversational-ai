@@ -64,6 +64,7 @@ export class AudioRecorder extends EventEmitter {
 
         if (arrayBuffer) {
           const arrayBufferString = arrayBufferToBase64(arrayBuffer)
+          console.log("🎤 Audio captured - size:", arrayBuffer.byteLength, "bytes")
           this.emit("data", arrayBufferString)
         }
       }

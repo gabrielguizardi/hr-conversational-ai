@@ -18,7 +18,27 @@ const create = async ({ jobVacancyId, ...rest }) => {
   }
 }
 
+const show = async ({ id }) => {
+  try {
+    return await api.get(`/candidates/${id}`)
+  } catch (error) {
+    console.error("Error fetching candidate:", error)
+    throw error
+  }
+}
+
+const meet = async ({ id }) => {
+  try {
+    return await api.get(`/candidates/${id}/meet`)
+  } catch (error) {
+    console.error("Error fetching candidate meet data:", error)
+    throw error
+  }
+}
+
 export default {
   list,
   create,
+  show,
+  meet,
 }
