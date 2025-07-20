@@ -1,6 +1,5 @@
 resource "aws_s3_bucket" "terraform_backend_bucket" {
   bucket = "terraform-backend-${var.component_name}"
-  region= var.region
 }
 
 resource "aws_s3_bucket_versioning" "terraform_backend_versioning" {
