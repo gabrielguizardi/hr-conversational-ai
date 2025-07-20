@@ -352,56 +352,57 @@ jobs:
         run: |
             docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest
 
-            vpc:
-              needs: [iam, set-env]
-              if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
-              runs-on: ubuntu-latest
-              steps:
-                - name: Checkout code
-                uses: actions/checkout@v2
-                
-                - name: Set up Terraform
-                uses: hashicorp/setup-terraform@v1
-                with:
-                  terraform_version: '1.0.0'
-                  
-                  - name: Configure AWS credentials
-                  uses: aws-actions/configure-aws-credentials@v1
-                  with:
-                    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-                    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-                    aws-region: ${{vars.AWS_REGION}}
-                    
-                    - name: Terraform Init and Apply
-                    run: |
-                    cd infra/vpc
-                    
-                    export resource_name="vpc"
-                    
-                    export component_name="${resource_name}-${{vars.BASE_NAME}}"
-                    export role_name="arn:aws:iam::${{vars.AWS_ID}}:role/${component_name}-terraform-backend-role"
-                    export bucket_name="terraform-backend-${component_name}"
-                    export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
-                    
-                    echo "terraform {" > backend.tf
-                    echo "  backend \"s3\" {" >> backend.tf
-                    echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
-                    echo "    role_arn       = \"${role_name}\"" >> backend.tf
-                    echo "    bucket         = \"${bucket_name}\"" >> backend.tf
-                    echo "    key            = \"terraform.tfstate\"" >> backend.tf
-                    echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
-                    echo "    encrypt        = true" >> backend.tf
-                    echo "  }" >> backend.tf
-                    echo "}" >> backend.tf
-                    
-                    export TF_VAR_region="${{vars.AWS_REGION}}"
-                    export TF_VAR_vpc_name="${component_name}-vpc"
-                    
-                    terraform init
-                    terraform plan
-                    terraform apply -auto-approve
+  vpc:
+    needs: [iam, set-env]
+    if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: '1.0.0'
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{vars.AWS_REGION}}
+
+      - name: Terraform Init and Apply
+        run: |
+          cd infra/vpc
+
+          export resource_name="vpc"
+
+          export component_name="${resource_name}-${{vars.BASE_NAME}}"
+          export role_name="arn:aws:iam::${{vars.AWS_ID}}:role/${component_name}-terraform-backend-role"
+          export bucket_name="terraform-backend-${component_name}"
+          export dynamodb_table_name="terraform-backend-lock-table-${component_name}"
+
+          echo "terraform {" > backend.tf
+          echo "  backend \"s3\" {" >> backend.tf
+          echo "    region         = \"${{vars.AWS_REGION}}\"" >> backend.tf
+          echo "    role_arn       = \"${role_name}\"" >> backend.tf
+          echo "    bucket         = \"${bucket_name}\"" >> backend.tf
+          echo "    key            = \"terraform.tfstate\"" >> backend.tf
+          echo "    dynamodb_table = \"${dynamodb_table_name}\"" >> backend.tf
+          echo "    encrypt        = true" >> backend.tf
+          echo "  }" >> backend.tf
+          echo "}" >> backend.tf
+
+          export TF_VAR_region="${{vars.AWS_REGION}}"
+          export TF_VAR_vpc_name="${component_name}-vpc"
+
+          terraform init
+          terraform plan
+          terraform apply -auto-approve
+
   ecs:
-    needs: [iam, ecr, set-env]
+    needs: [iam, vpc, ecr, set-env]
     if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
     runs-on: ubuntu-latest
     steps:
