@@ -4,6 +4,12 @@ variable "account_id" {
   default     = "413467296690"
 }
 
+variable "user" {
+  description = "AWS user"
+  type        = string
+  default     = "terraform-user"
+}
+
 variable "component_name" {
   description = "Component name"
   type        = string

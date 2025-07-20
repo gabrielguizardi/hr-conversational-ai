@@ -104,7 +104,7 @@ jobs:
           echo '  backend "s3" {' >> backend.tf
           echo '    region         = "${{vars.AWS_REGION}}"' >> backend.tf
           echo '    role_arn       = "arn:aws:iam::${{vars.AWS_ID}}:role/s3-${{vars.BASE_NAME}}-terraform-backend-role"' >> backend.tf
-          echo '    bucket         = "iam-${{vars.BASE_NAME}}-frontend"' >> backend.tf
+          echo '    bucket         = "terraform-backend-iam-${{vars.BASE_NAME}}"' >> backend.tf
           echo '    key            = "terraform.tfstate"' >> backend.tf
           echo '    dynamodb_table = "terraform-backend-lock-table-s3-${{vars.BASE_NAME}}"' >> backend.tf
           echo '    encrypt        = true' >> backend.tf
