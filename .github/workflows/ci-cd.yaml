@@ -110,11 +110,10 @@ jobs:
           echo '    encrypt        = true' >> backend.tf
           echo '  }' >> backend.tf
           echo '}' >> backend.tf
-          
+
+          export TF_VAR_region="${{vars.AWS_REGION}}"
           export TF_LOG="DEBUG"
           terraform init
-          
-          export TF_VAR_region="${{vars.AWS_REGION}}"
           terraform plan
           terraform apply -auto-approve
 
