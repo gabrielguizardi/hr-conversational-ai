@@ -450,6 +450,8 @@ jobs:
           export TF_VAR_region="${{vars.AWS_REGION}}"
           export TF_VAR_vpc_name="vpc-${{vars.BASE_NAME}}-vpc"
 
+          export TF_LOG="DEBUG"
+
           terraform init
           terraform plan
           terraform apply -auto-approve
