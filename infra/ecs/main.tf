@@ -59,9 +59,9 @@ resource "aws_ecs_service" "backend" {
   desired_count   = 1
   launch_type     = "FARGATE"
   network_configuration {
-    subnets          = [aws_subnet.vpc-public-a.id, aws_subnet.vpc-public-b.id]
+    subnets          = [data.aws_subnet.vpc-public-a.id, data.aws_subnet.vpc-public-b.id]
     assign_public_ip = true
-    security_groups  = [aws_security_group.backend.id]
+    security_groups  = [data.aws_security_group.backend.id]
   }
 }
 
