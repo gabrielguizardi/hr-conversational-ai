@@ -343,11 +343,11 @@ jobs:
   
       - name: Build Docker image locally
         run: |
-            docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest -f ./server/Dockerfile .
+            docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest -f ./server/Dockerfile .
   
       - name: Push Docker image to Amazon ECR
         run: |
-            docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest
+            docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest
 
   ecs:
     needs: [iam, ecr, set-env]
