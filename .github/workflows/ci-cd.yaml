@@ -350,12 +350,12 @@ jobs:
       - name: Build Docker image locally
         run: |
             docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest -f ./server/Dockerfile .
-            docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${frontend_repo}:latest -f ./web/Dockerfile .
+            docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${{vars.BASE_NAME}}-frontend-repo:latest -f ./web/Dockerfile .
   
       - name: Push Docker image to Amazon ECR
         run: |
             docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest
-            docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${frontend_repo}:latest
+            docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${{vars.BASE_NAME}}-frontend-repo:latest
 
   vpc:
     needs: [iam, set-env]
@@ -406,7 +406,7 @@ jobs:
           terraform plan
           terraform apply -auto-approve
   lb:
-    needs: [iam, set-env]
+    needs: [iam, vpc, set-env]
     if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
     runs-on: ubuntu-latest
     steps:
@@ -457,7 +457,7 @@ jobs:
           terraform apply -auto-approve
 
   ecs:
-    needs: [iam, vpc, ecr, set-env]
+    needs: [iam, vpc, lb, ecr, set-env]
     if: github.ref == 'refs/heads/main' && needs.set-env.outputs.action == 'apply'
     runs-on: ubuntu-latest
     steps:
