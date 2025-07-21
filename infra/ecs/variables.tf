@@ -25,6 +25,11 @@ variable "gemini_api_key" {
   description = "Chave da API Gemini"
 }
 
+variable "lb_name" {
+  description = "Name of the frontend application"
+  type        = string
+  default     = "hr-conversational-ai-frontend"
+}
 
 variable "frontend_app_name" {
   description = "Name of the frontend application"

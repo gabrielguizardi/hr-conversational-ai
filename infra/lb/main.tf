@@ -7,7 +7,7 @@ data "aws_vpc" "main" {
 
 # 🔒 Security Group para o Load Balancer
 resource "aws_security_group" "alb_sg" {
-  name        = "${var.frontend_app_name}-alb-sg"
+  name        = "${var.lb_name}-alb-sg"
   description = "Allow HTTP inbound traffic"
   vpc_id      = data.aws_vpc.main.id
 
@@ -43,7 +43,7 @@ data "aws_subnet" "vpc-public-b" {
 
 # ⚖️ Load Balancer
 resource "aws_lb" "frontend_alb" {
-  name               = "${var.frontend_app_name}-alb"
+  name               = "${var.lb_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -54,7 +54,7 @@ resource "aws_lb" "frontend_alb" {
 
 # 🎯 Target Group
 resource "aws_lb_target_group" "frontend_tg" {
-  name        = "${var.frontend_app_name}-tg"
+  name        = "${var.lb_name}-tg"
   port        = 80
   protocol    = "HTTP"
   target_type = "ip"

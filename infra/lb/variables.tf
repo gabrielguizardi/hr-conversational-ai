@@ -4,7 +4,7 @@ variable "region" {
   default     = "us-east-1"
 }
 
-variable "frontend_app_name" {
+variable "lb_name" {
   description = "Name of the frontend application"
   type        = string
   default     = "hr-conversational-ai-frontend"

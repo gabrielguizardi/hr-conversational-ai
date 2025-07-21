@@ -59,10 +59,6 @@ data "aws_security_group" "backend" {
   vpc_id = data.aws_vpc.main.id
 }
 
-data "aws_lb_target_group" "frontend_tg" {
-  name = "${var.frontend_app_name}-tg"
-}
-
 resource "aws_ecs_service" "backend" {
   name            = "backend-service"
   cluster         = aws_ecs_cluster.main.id
@@ -74,11 +70,6 @@ resource "aws_ecs_service" "backend" {
     assign_public_ip = true
     security_groups  = [data.aws_security_group.backend.id]
   }
-  load_balancer {
-  target_group_arn = data.aws_lb_target_group.frontend_tg.arn
-  container_name   = "frontend"
-  container_port   = 80
-}
 }
 
 # Define task
@@ -110,6 +101,10 @@ resource "aws_ecs_cluster" "frontend_cluster" {
   name = "${var.frontend_app_name}-cluster"
 }
 
+data "aws_lb_target_group" "frontend_tg" {
+  name = "${var.lb_name}-tg"
+}
+
 # Cria serviço ECS
 resource "aws_ecs_service" "frontend_service" {
   name            = "${var.frontend_app_name}-service"
@@ -122,6 +117,12 @@ resource "aws_ecs_service" "frontend_service" {
     security_groups = [data.aws_security_group.backend.id]
     assign_public_ip = true
   }
+  
+  load_balancer {
+  target_group_arn = data.aws_lb_target_group.frontend_tg.arn
+  container_name   = "frontend"
+  container_port   = 80
+}
 
   desired_count = 1
 }
