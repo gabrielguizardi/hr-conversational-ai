@@ -45,7 +45,7 @@ jobs:
 
       - name: Removing files from S3 bucket in case of destroy command
         run: |
-            aws s3 rm s3://s3_${{vars.BASE_NAME}}/ --recursive
+            aws s3 rm s3://s3-${{vars.BASE_NAME}}/ --recursive
       
       - name: Terraform Init and Destroy ECR repository
         run: |
@@ -231,6 +231,7 @@ jobs:
           echo "}" >> backend.tf
 
           export TF_VAR_terraform_backend_region="${{vars.AWS_REGION}}"
+          export TF_VAR_frontend_app_name="${{vars.BASE_NAME}}-frontend"
           export TF_LOG="DEBUG"
 
           terraform init
@@ -331,7 +332,9 @@ jobs:
 
           export TF_VAR_ecr_repo_name="${component_name}-backend"
           export TF_VAR_region="${{vars.AWS_REGION}}"
+          export TF_VAR_frontend_app_name="${{vars.BASE_NAME}}-frontend"
 
+          export frontend_repo = "${{vars.BASE_NAME}}-frontend-repo"
           export TF_LOG="DEBUG"
 
           terraform init
@@ -347,10 +350,12 @@ jobs:
       - name: Build Docker image locally
         run: |
             docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest -f ./server/Dockerfile .
+            docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${frontend_repo}:latest -f ./web/Dockerfile .
   
       - name: Push Docker image to Amazon ECR
         run: |
             docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest
+            docker push ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${frontend_repo}:latest
 
   vpc:
     needs: [iam, set-env]
@@ -449,6 +454,8 @@ jobs:
           export TF_VAR_gemini_api_key="${{secrets.GEMINI_API_KEY}}"
           export TF_VAR_region="${{vars.AWS_REGION}}"
           export TF_VAR_vpc_name="vpc-${{vars.BASE_NAME}}-vpc"
+          export TF_VAR_frontend_app_name="${{vars.BASE_NAME}}-frontend"
+          export TF_VAR_ecs_task_exec_role_frontend="arn:aws:iam::${{vars.AWS_ID}}:role/${TF_VAR_frontend_app_name}-ecs-role"
 
           export TF_LOG="DEBUG"
 
