@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge"
 
 import { AddCandidateDialog } from "@/components/job-vacancy-show/add-candidate-dialog"
 import { ActionCandidateDialog } from "@/components/job-vacancy-show/action-candidate-dialog"
+import { InterviewQuestionsDialog } from "@/components/job-vacancy-show/interview-questions-dialog"
 
 import useFetch from "@/hooks/useFetch"
 
@@ -81,10 +82,13 @@ const JobVacancyShow = () => {
           <div>
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-semibold">Candidaturas</h2>
-              <AddCandidateDialog
-                jobVacancyId={jobVacancyId}
-                refresh={refreshCandidates}
-              />
+              <div className="flex gap-2">
+                <InterviewQuestionsDialog jobVacancyId={jobVacancyId} />
+                <AddCandidateDialog
+                  jobVacancyId={jobVacancyId}
+                  refresh={refreshCandidates}
+                />
+              </div>
             </div>
 
             <Table>

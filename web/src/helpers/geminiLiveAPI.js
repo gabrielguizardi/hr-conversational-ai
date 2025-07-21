@@ -47,7 +47,15 @@ class GeminiLiveAPI {
           wsResponse = JSON.parse(event.data)
         }
 
-        console.log("WebSocket Response:", wsResponse)
+        console.log("📨 WebSocket Response received:", {
+          hasAuthComplete: !!wsResponse.authComplete,
+          hasSetupComplete: !!wsResponse.setupComplete,
+          hasToolCall: !!wsResponse.toolCall,
+          hasServerContent: !!wsResponse.serverContent,
+          hasAudioData:
+            !!wsResponse.serverContent?.modelTurn?.parts?.[0]?.inlineData,
+          turnComplete: wsResponse.serverContent?.turnComplete,
+        })
 
         if (wsResponse.authComplete) {
           console.log("Auth completed, connection ready")
@@ -56,6 +64,7 @@ class GeminiLiveAPI {
 
         if (wsResponse.setupComplete) {
           this.onSetupComplete()
+          this.sendInitialMessage()
         } else if (wsResponse.toolCall) {
           this.onToolCall(wsResponse.toolCall)
         } else if (wsResponse.serverContent) {
@@ -67,6 +76,10 @@ class GeminiLiveAPI {
           if (wsResponse.serverContent.modelTurn?.parts?.[0]?.inlineData) {
             const audioData =
               wsResponse.serverContent.modelTurn.parts[0].inlineData.data
+            console.log(
+              "🎵 Audio data received from Gemini - base64 length:",
+              audioData.length
+            )
             this.onAudioData(audioData)
 
             if (!wsResponse.serverContent.turnComplete) {
@@ -104,16 +117,37 @@ class GeminiLiveAPI {
     }
   }
 
-  sendSetupRequest() {
+  sendSetupRequest(jobVacancyId = null, jobCandidateId = null) {
     // Send a minimal setup request - backend will handle the actual configuration
     const setupMessage = {
       setup: {},
     }
 
+    // Add job vacancy ID if provided
+    if (jobVacancyId) {
+      setupMessage.setup.job_vacancy_id = jobVacancyId
+      console.log("🔍 Job vacancy ID included in setup:", jobVacancyId)
+    } else {
+      console.log("⚠️ No job vacancy ID provided for setup")
+    }
+
+    // Add job candidate ID if provided
+    if (jobCandidateId) {
+      setupMessage.setup.job_candidate_id = jobCandidateId
+      console.log("🔍 Job candidate ID included in setup:", jobCandidateId)
+    } else {
+      console.log("⚠️ No job candidate ID provided for setup")
+    }
+
     if (this.ws.readyState === WebSocket.OPEN) {
-      console.log("Sending setup request to backend")
+      console.log("📤 Sending setup request to backend:", setupMessage)
       this.ws.send(JSON.stringify(setupMessage))
       this.isSetupSent = true
+    } else {
+      console.error(
+        "❌ WebSocket not ready for setup. State:",
+        this.ws.readyState
+      )
     }
   }
 
@@ -128,8 +162,29 @@ class GeminiLiveAPI {
         ],
       },
     }
-    console.log("Sending audio message: ", message)
+    console.log(
+      "📡 WebSocket sending audio chunk - data length:",
+      base64Audio.length
+    )
     this.sendMessage(message)
+  }
+
+  sendInitialMessage() {
+    const message = {
+      client_content: {
+        turns: [
+          {
+            role: "user",
+            parts: [{ text: "Olá! Se apresente e inicie a entrevista." }],
+          },
+        ],
+        turn_complete: true,
+      },
+    }
+    setTimeout(() => {
+      this.sendMessage(message)
+      console.log("🔄 Initial message sent to Gemini")
+    }, 1000)
   }
 
   sendEndMessage() {
