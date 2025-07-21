@@ -45,7 +45,7 @@ jobs:
 
       - name: Removing files from S3 bucket in case of destroy command
         run: |
-            aws s3 rm s3://s3-${{vars.BASE_NAME}}/ --recursive
+            aws s3 rm s3://s3-${{vars.BASE_NAME}}-frontend/ --recursive
       
       - name: Terraform Init and Destroy ECR repository
         run: |
