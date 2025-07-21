@@ -150,7 +150,13 @@ data "aws_lb_target_group" "frontend_tg" {
   name = "${var.lb_name}-tg"
 }
 
-
+data "aws_security_group" "frontend" {
+  filter {
+    name   = "group-name"
+    values = ["${var.vpc_name}-frontend-sg"]
+  }
+  vpc_id = data.aws_vpc.main.id
+}
 
 # Cria serviço ECS
 resource "aws_ecs_service" "frontend_service" {
@@ -161,7 +167,7 @@ resource "aws_ecs_service" "frontend_service" {
 
   network_configuration {
     subnets         = [data.aws_subnet.vpc-public-a.id, data.aws_subnet.vpc-public-b.id]
-    security_groups = [data.aws_security_group.backend.id]
+    security_groups = [data.aws_security_group.frontend.id]
     assign_public_ip = true
   }
   
