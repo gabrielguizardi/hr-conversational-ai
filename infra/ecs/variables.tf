@@ -24,3 +24,16 @@ variable "ecs_task_exec_role" {
 variable "gemini_api_key" {
   description = "Chave da API Gemini"
 }
+
+
+variable "frontend_app_name" {
+  description = "Name of the frontend application"
+  type        = string
+  default     = "hr-conversational-ai-frontend"
+}
+
+variable "ecs_task_exec_role_frontend" {
+  description = "Role for ECS task execution for frontend"
+  type        = string
+  default     = "" # Update with actual role ARN
+}

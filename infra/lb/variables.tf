@@ -9,3 +9,7 @@ variable "frontend_app_name" {
   type        = string
   default     = "hr-conversational-ai-frontend"
 }
+
+variable "vpc_name" {
+  default = "hr-conversational-ai-backend"
+}

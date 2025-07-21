@@ -59,6 +59,9 @@ data "aws_security_group" "backend" {
   vpc_id = data.aws_vpc.main.id
 }
 
+data "aws_lb_target_group" "frontend_tg" {
+  name = "${var.frontend_app_name}-tg"
+}
 
 resource "aws_ecs_service" "backend" {
   name            = "backend-service"
@@ -71,5 +74,54 @@ resource "aws_ecs_service" "backend" {
     assign_public_ip = true
     security_groups  = [data.aws_security_group.backend.id]
   }
+  load_balancer {
+  target_group_arn = data.aws_lb_target_group.frontend_tg.arn
+  container_name   = "frontend"
+  container_port   = 80
+}
 }
 
+# Define task
+resource "aws_ecs_task_definition" "frontend_task" {
+  family                   = "${var.frontend_app_name}-task"
+  requires_compatibilities = ["FARGATE"]
+  network_mode            = "awsvpc"
+  cpu                     = "256"
+  memory                  = "512"
+  execution_role_arn      = var.ecs_task_exec_role_frontend
+
+  container_definitions = jsonencode([
+    {
+      name      = "frontend"
+      image     = "${aws_ecr_repository.frontend_repo.repository_url}:latest"
+      essential = true
+      portMappings = [
+        {
+          containerPort = 80
+          hostPort      = 80
+        }
+      ]
+    }
+  ])
+}
+
+# Cria ECS Cluster
+resource "aws_ecs_cluster" "frontend_cluster" {
+  name = "${var.frontend_app_name}-cluster"
+}
+
+# Cria serviço ECS
+resource "aws_ecs_service" "frontend_service" {
+  name            = "${var.frontend_app_name}-service"
+  cluster         = aws_ecs_cluster.frontend_cluster.id
+  task_definition = aws_ecs_task_definition.frontend_task.arn
+  launch_type     = "FARGATE"
+
+  network_configuration {
+    subnets         = [data.aws_subnet.vpc-public-a.id, data.aws_subnet.vpc-public-b.id]
+    security_groups = [data.aws_security_group.backend.id]
+    assign_public_ip = true
+  }
+
+  desired_count = 1
+}
