@@ -148,10 +148,6 @@ resource "aws_ecs_cluster" "frontend_cluster" {
 
 data "aws_lb_target_group" "frontend_tg" {
   name = "${var.lb_name}-tg"
-  port     = 80
-  protocol = "HTTP"
-  vpc_id   = data.aws_vpc.main.id
-  target_type = "ip"
 }
 
 
