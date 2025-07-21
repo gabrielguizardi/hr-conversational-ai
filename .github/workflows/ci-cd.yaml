@@ -500,7 +500,7 @@ jobs:
           echo "}" >> backend.tf
 
           export TF_VAR_ecs_task_exec_role="arn:aws:iam::${{vars.AWS_ID}}:role/ecsTaskExecutionRole"
-          export TF_VAR_ecs_image_name=${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}:latest
+          export TF_VAR_ecs_image_name=${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest
           export TF_VAR_ecs_cluster_name="${component_name}-cluster"
           export TF_VAR_gemini_api_key="${{secrets.GEMINI_API_KEY}}"
           export TF_VAR_region="${{vars.AWS_REGION}}"
