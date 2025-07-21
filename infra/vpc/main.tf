@@ -88,7 +88,7 @@ resource "aws_security_group" "backend" {
 resource "aws_security_group" "frontend" {
   name        = "${var.vpc_name}-frontend-sg"
   description = "Permite acesso público HTTP ao frontend e comunicação com backend"
-  vpc_id      = data.aws_vpc.main.id
+  vpc_id      = aws_vpc.main.id
 
   # Entrada: permite acesso HTTP de qualquer lugar
   ingress {
