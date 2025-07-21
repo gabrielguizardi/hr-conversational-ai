@@ -27,7 +27,7 @@ resource "aws_ecs_task_definition" "backend" {
         },
         {
           name  = "PORT"
-          value = 3001
+          value = "3001"
         },
         {
           name  = "MONGODB_URI"
