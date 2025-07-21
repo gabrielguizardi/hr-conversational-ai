@@ -37,6 +37,12 @@ variable "frontend_app_name" {
   default     = "hr-conversational-ai-frontend"
 }
 
+variable "frontend_image" {
+  description = "Docker image for the frontend application"
+  type        = string
+  default     = "hr-conversational-ai-frontend:latest"
+}
+
 variable "ecs_task_exec_role_frontend" {
   description = "Role for ECS task execution for frontend"
   type        = string

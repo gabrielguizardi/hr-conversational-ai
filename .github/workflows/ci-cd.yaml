@@ -507,6 +507,7 @@ jobs:
           export TF_VAR_vpc_name="vpc-${{vars.BASE_NAME}}-vpc"
           export TF_VAR_lb_name="${{vars.BASE_NAME}}-lb"
           export TF_VAR_frontend_app_name="${{vars.BASE_NAME}}-frontend"
+          export TF_VAR_frontend_image="${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${{vars.BASE_NAME}}-frontend-repo:latest"
           export TF_VAR_ecs_task_exec_role_frontend="arn:aws:iam::${{vars.AWS_ID}}:role/${TF_VAR_frontend_app_name}-ecs-role"
 
           export TF_LOG="DEBUG"
