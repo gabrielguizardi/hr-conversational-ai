@@ -23,7 +23,15 @@ resource "aws_ecs_task_definition" "backend" {
       environment = [
         {
           name  = "GEMINI_API_KEY"
-          value = var.gemini_api_key
+          value = "${var.gemini_api_key}"
+        },
+        {
+          name  = "PORT"
+          value = "3001"
+        },
+        {
+          name  = "MONGODB_URI"
+          value = "mongodb+srv://matheus:CouwafNnb02MObBg@cluster0.eectqa9.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
         }
       ]
     }
@@ -34,6 +42,49 @@ data "aws_vpc" "main" {
   filter {
     name   = "tag:Name"
     values = [var.vpc_name]
+  }
+}
+
+resource "aws_service_discovery_private_dns_namespace" "namespace" {
+  name        = "internal.local"
+  description = "Namespace privado para comunicação interna entre ECS services"
+  vpc         = data.aws_vpc.main.id
+}
+
+resource "aws_service_discovery_service" "backend_sd" {
+  name = "backend"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.namespace.id
+
+    dns_records {
+      type = "A"
+      ttl  = 60
+    }
+
+    routing_policy = "MULTIVALUE"
+  }
+
+  lifecycle {
+    prevent_destroy = false
+  }
+}
+
+resource "aws_service_discovery_service" "frontend_sd" {
+  name = "frontend"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.namespace.id
+    dns_records {
+      type = "A"
+      ttl  = 60
+    }
+    routing_policy = "MULTIVALUE"
+    
+  }
+  
+  lifecycle {
+    prevent_destroy = false
   }
 }
 
@@ -51,10 +102,14 @@ data "aws_subnet" "vpc-public-b" {
   }
 }
 
+data "aws_lb_target_group" "backend_tg" {
+  name = "${var.lb_name}-tg"
+}
+
 data "aws_security_group" "backend" {
   filter {
     name   = "group-name"
-    values = ["${var.vpc_name}-backend-sg"]
+    values = ["backend-lb-sg"]
   }
   vpc_id = data.aws_vpc.main.id
 }
@@ -65,11 +120,22 @@ resource "aws_ecs_service" "backend" {
   task_definition = aws_ecs_task_definition.backend.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+
   network_configuration {
     subnets          = [data.aws_subnet.vpc-public-a.id, data.aws_subnet.vpc-public-b.id]
     assign_public_ip = true
     security_groups  = [data.aws_security_group.backend.id]
   }
+
+  load_balancer {
+    target_group_arn = data.aws_lb_target_group.backend_tg.arn
+    container_name   = "backend"
+    container_port   = 3001
+  }
+}
+
+data "aws_lb" "backend-lb" {
+  name               = "backend-lb"
 }
 
 # Define task
@@ -91,6 +157,13 @@ resource "aws_ecs_task_definition" "frontend_task" {
           containerPort = 80
           hostPort      = 80
         }
+      ],
+      environment = [
+        { name = "NODE_ENV", value = "production" },
+        { name = "VITE_API_URL", value = "http://${data.aws_lb.backend-lb.dns_name}:3001" },
+        { name = "VITE_WS_URL",  value = "ws://${data.aws_lb.backend-lb.dns_name}:3001" },
+        { name = "VITE_PROJECT_URL", value = "http://frontend.internal.local:5173" }
+
       ]
     }
   ])
@@ -105,6 +178,14 @@ data "aws_lb_target_group" "frontend_tg" {
   name = "${var.lb_name}-tg"
 }
 
+data "aws_security_group" "frontend" {
+  filter {
+    name   = "group-name"
+    values = ["${var.vpc_name}-frontend-sg"]
+  }
+  vpc_id = data.aws_vpc.main.id
+}
+
 # Cria serviço ECS
 resource "aws_ecs_service" "frontend_service" {
   name            = "${var.frontend_app_name}-service"
@@ -114,7 +195,7 @@ resource "aws_ecs_service" "frontend_service" {
 
   network_configuration {
     subnets         = [data.aws_subnet.vpc-public-a.id, data.aws_subnet.vpc-public-b.id]
-    security_groups = [data.aws_security_group.backend.id]
+    security_groups = [data.aws_security_group.frontend.id]
     assign_public_ip = true
   }
   
@@ -125,4 +206,20 @@ resource "aws_ecs_service" "frontend_service" {
 }
 
   desired_count = 1
+
+}
+
+data "aws_lb" "frontend_alb" {
+  name               = "${var.lb_name}-alb"
+}
+
+resource "aws_lb_listener" "frontend_listener" {
+  load_balancer_arn = data.aws_lb.frontend_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = data.aws_lb_target_group.frontend_tg.arn
+  }
 }

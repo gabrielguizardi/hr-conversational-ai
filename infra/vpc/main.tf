@@ -84,3 +84,40 @@ resource "aws_security_group" "backend" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+resource "aws_security_group" "frontend" {
+  name        = "${var.vpc_name}-frontend-sg"
+  description = "Permite acesso HTTP ao frontend e comunicacao com backend"
+  vpc_id      = aws_vpc.main.id
+
+  # Entrada: permite acesso HTTP de qualquer lugar
+  ingress {
+    description      = "Permitir acesso HTTP externo"
+    from_port        = 80
+    to_port          = 80
+    protocol         = "tcp"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  # Saída: permite acesso à porta 3001 do backend e internet
+  egress {
+    description      = "Permitir chamadas para backend e internet"
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    cidr_blocks      = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "${var.vpc_name}-frontend-sg"
+  }
+}
+
+resource "aws_security_group_rule" "frontend_to_backend" {
+  type                     = "ingress"
+  from_port                = 3001
+  to_port                  = 3001
+  protocol                 = "tcp"
+  security_group_id        = aws_security_group.backend.id
+  source_security_group_id = aws_security_group.frontend.id
+}
