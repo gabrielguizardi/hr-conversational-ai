@@ -4,6 +4,11 @@ WORKDIR /app
 COPY ./web ./
 RUN npm ci && npm run build
 
+ENV NODE_ENV
+ENV VITE_API_URL
+ENV VITE_WS_URL
+ENV VITE_PROJECT_URL
+
 # Etapa final: servidor Nginx
 FROM nginx:alpine
 
