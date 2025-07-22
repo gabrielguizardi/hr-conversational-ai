@@ -2,6 +2,8 @@
 
 Um sistema de entrevistas prévias automatizadas para o setor de Recursos Humanos, utilizando a IA conversacional do Google Gemini, com backend desenvolvido em FastAPI e frontend em React.
 
+Aplicação: http://hr-conversational-ai-lb-alb-769717365.us-east-1.elb.amazonaws.com/
+
 ## Visão Geral
 
 Este projeto permite a realização de pré-entrevistas de emprego de forma automatizada. Perguntas configuráveis são feitas ao candidato por meio de uma interface conversacional, e as respostas são coletadas e armazenadas para análise posterior.
