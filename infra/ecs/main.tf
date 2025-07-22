@@ -102,14 +102,6 @@ data "aws_subnet" "vpc-public-b" {
   }
 }
 
-data "aws_security_group" "backend" {
-  filter {
-    name   = "group-name"
-    values = ["${var.vpc_name}-backend-sg"]
-  }
-  vpc_id = data.aws_vpc.main.id
-}
-
 data "aws_lb_target_group" "backend_tg" {
   name = "${var.lb_name}-tg"
 }
