@@ -114,6 +114,14 @@ data "aws_lb_target_group" "backend_tg" {
   name = "${var.lb_name}-tg"
 }
 
+data "aws_security_group" "backend" {
+  filter {
+    name   = "group-name"
+    values = ["backend-lb-sg"]
+  }
+  vpc_id = data.aws_vpc.main.id
+}
+
 resource "aws_ecs_service" "backend" {
   name            = "backend-service"
   cluster         = aws_ecs_cluster.main.id
@@ -122,9 +130,9 @@ resource "aws_ecs_service" "backend" {
   launch_type     = "FARGATE"
 
   network_configuration {
-    subnets          = [data.aws_subnet.public_a.id, data.aws_subnet.public_b.id]
+    subnets          = [data.aws_subnet.vpc-public-a.id, data.aws_subnet.vpc-public-b.id]
     assign_public_ip = true
-    security_groups  = [aws_security_group.backend.id]
+    security_groups  = [data.aws_security_group.backend.id]
   }
 
   load_balancer {
@@ -160,8 +168,8 @@ resource "aws_ecs_task_definition" "frontend_task" {
       ],
       environment = [
         { name = "NODE_ENV", value = "production" },
-        { name = "VITE_API_URL", value = "http://${data.aws_lb.backend_lb.dns_name}:3001" },
-        { name = "VITE_WS_URL",  value = "ws://${data.aws_lb.backend_lb.dns_name}:3001" },
+        { name = "VITE_API_URL", value = "http://${data.aws_lb.backend-lb.dns_name}:3001" },
+        { name = "VITE_WS_URL",  value = "ws://${data.aws_lb.backend-lb.dns_name}:3001" },
         { name = "VITE_PROJECT_URL", value = "http://frontend.internal.local:5173" }
 
       ]
