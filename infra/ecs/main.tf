@@ -45,7 +45,7 @@ data "aws_vpc" "main" {
   }
 }
 
-resource "aws_service_discovery_private_dns_namespace" "backend_namespace" {
+resource "aws_service_discovery_private_dns_namespace" "namespace" {
   name        = "internal.local"
   description = "Namespace privado para comunicação interna entre ECS services"
   vpc         = data.aws_vpc.main.id
@@ -55,7 +55,7 @@ resource "aws_service_discovery_service" "backend_sd" {
   name = "backend"
 
   dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.backend_namespace.id
+    namespace_id = aws_service_discovery_private_dns_namespace.namespace.id
 
     dns_records {
       type = "A"
@@ -70,16 +70,11 @@ resource "aws_service_discovery_service" "backend_sd" {
   }
 }
 
-resource "aws_service_discovery_private_dns_namespace" "frontend_namespace" {
-  name = "internal.local"
-  vpc  = data.aws_vpc.main.id
-}
-
 resource "aws_service_discovery_service" "frontend_sd" {
   name = "frontend"
 
   dns_config {
-    namespace_id = aws_service_discovery_private_dns_namespace.frontend_namespace.id
+    namespace_id = aws_service_discovery_private_dns_namespace.namespace.id
     dns_records {
       type = "A"
       ttl  = 60
