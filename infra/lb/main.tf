@@ -106,7 +106,7 @@ resource "aws_lb" "backend" {
   name               = "backend-lb"
   internal           = false              # Externo (público)
   load_balancer_type = "application"
-  subnets            = [data.aws_subnet.public_a.id, data.aws_subnet.public_b.id]
+  subnets            = [data.aws_subnet.vpc-public-a.id, data.aws_subnet.vpc-public-b.id]
   security_groups    = [aws_security_group.backend_lb.id]
 }
 
