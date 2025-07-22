@@ -1,13 +1,20 @@
 # Etapa de build
 FROM node:20 AS builder
 WORKDIR /app
+
+# Declara os argumentos de build
+ARG VITE_API_URL
+ARG VITE_WS_URL
+ARG VITE_PROJECT_URL
+
+# Define os valores como variáveis de ambiente
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_WS_URL=$VITE_WS_URL
+ENV VITE_PROJECT_URL=$VITE_PROJECT_URL
+
+
 COPY ./web ./
 RUN npm ci && npm run build
-
-ENV NODE_ENV
-ENV VITE_API_URL
-ENV VITE_WS_URL
-ENV VITE_PROJECT_URL
 
 # Etapa final: servidor Nginx
 FROM nginx:alpine

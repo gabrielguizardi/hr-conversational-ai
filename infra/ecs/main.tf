@@ -70,6 +70,24 @@ resource "aws_service_discovery_service" "backend_sd" {
   }
 }
 
+resource "aws_service_discovery_private_dns_namespace" "frontend_namespace" {
+  name = "internal.local"
+  vpc  = data.aws_vpc.main.id
+}
+
+resource "aws_service_discovery_service" "frontend_sd" {
+  name = "frontend"
+
+  dns_config {
+    namespace_id = aws_service_discovery_private_dns_namespace.frontend_namespace.id
+    dns_records {
+      type = "A"
+      ttl  = 60
+    }
+    routing_policy = "MULTIVALUE"
+  }
+}
+
 data "aws_subnet" "vpc-public-a" {
   filter {
     name   = "tag:Name"
@@ -134,7 +152,7 @@ resource "aws_ecs_task_definition" "frontend_task" {
         { name = "NODE_ENV", value = "production" },
         { name = "VITE_API_URL", value = "http://backend.internal.local:3001" },
         { name = "VITE_WS_URL",  value = "ws://backend.internal.local:3001" },
-        { name = "VITE_PROJECT_URL", value = "http://frontend-url" }
+        { name = "VITE_PROJECT_URL", value = "http://frontend.internal.local:5173" }
 
       ]
     }
