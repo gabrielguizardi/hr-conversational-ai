@@ -350,11 +350,7 @@ jobs:
       - name: Build Docker image locally
         run: |
             docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/ecr-${{vars.BASE_NAME}}-backend:latest -f ./server/Dockerfile .
-            docker build \
-              --build-arg VITE_API_URL=http://backend.internal.local:3001 \
-              --build-arg VITE_WS_URL=ws://backend.internal.local:3001 \
-              --build-arg VITE_PROJECT_URL=http://frontend.internal.local:5173 \
-            -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${{vars.BASE_NAME}}-frontend-repo:latest -f ./web/Dockerfile .
+            docker build -t ${{vars.AWS_ID}}.dkr.ecr.${{vars.AWS_REGION}}.amazonaws.com/${{vars.BASE_NAME}}-frontend-repo:latest -f ./web/Dockerfile .
   
       - name: Push Docker image to Amazon ECR
         run: |
