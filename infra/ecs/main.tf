@@ -65,9 +65,11 @@ resource "aws_service_discovery_service" "backend_sd" {
     routing_policy = "MULTIVALUE"
   }
 
-  health_check_custom_config {
-    failure_threshold = 1
+  lifecycle {
+    prevent_destroy = false
   }
+
+  depends_on = [aws_ecs_service.backend]
 }
 
 resource "aws_service_discovery_service" "frontend_sd" {
@@ -80,7 +82,15 @@ resource "aws_service_discovery_service" "frontend_sd" {
       ttl  = 60
     }
     routing_policy = "MULTIVALUE"
+    
   }
+  
+  lifecycle {
+    prevent_destroy = false
+  }
+
+  depends_on = [aws_ecs_service.frontend_service]
+
 }
 
 data "aws_subnet" "vpc-public-a" {
