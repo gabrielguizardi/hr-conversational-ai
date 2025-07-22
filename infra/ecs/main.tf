@@ -68,8 +68,6 @@ resource "aws_service_discovery_service" "backend_sd" {
   lifecycle {
     prevent_destroy = false
   }
-
-  depends_on = [aws_ecs_service.backend]
 }
 
 resource "aws_service_discovery_service" "frontend_sd" {
@@ -88,9 +86,6 @@ resource "aws_service_discovery_service" "frontend_sd" {
   lifecycle {
     prevent_destroy = false
   }
-
-  depends_on = [aws_ecs_service.frontend_service]
-
 }
 
 data "aws_subnet" "vpc-public-a" {
